@@ -1,0 +1,153 @@
+package com.planify.user_service.service;
+
+import com.planify.user_service.model.*;
+import com.planify.user_service.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
+    private final InvitationRepository invitationRepository;
+    private final OrganizationMembershipRepository membershipRepository;
+    private final JoinRequestRepository joinRequestRepository;
+
+
+    /**
+     * Sinhronizira uporabnika iz Keycloak tokena.
+     * Ob prvem klicu: ustvari UserEntity z vlogo GUEST.
+     */
+    @Transactional
+    public UserEntity syncUserFromToken() {
+        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String keycloakId = jwt.getSubject();
+        String email = jwt.getClaimAsString("email");
+        String firstName = jwt.getClaimAsString("given_name");
+        String lastName = jwt.getClaimAsString("family_name");
+
+        Optional<UserEntity> existingUser = userRepository.findByKeycloakId(keycloakId);
+
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+
+        // Ustvari novega uporabnika
+        UserEntity newUser = new UserEntity();
+        newUser.setKeycloakId(keycloakId);
+        newUser.setEmail(email);
+        newUser.setFirstName(firstName);
+        newUser.setFirstName(lastName);
+        newUser.setCreatedAt(LocalDateTime.now());
+
+        return userRepository.save(newUser);
+    }
+
+    @Transactional
+    public UserEntity getCurrentUser() {
+        return syncUserFromToken(); // Avtomatsko sinhronizira ob branju
+    }
+
+    @Transactional
+    public void deleteUser(UUID userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Soft delete
+        user.setDeletedAt(LocalDateTime.now());
+
+        // Izbriši ali anonimiziraj membership-e
+        membershipRepository.deleteAll(user.getMemberships());
+
+        userRepository.save(user);
+        log.info("User {} marked as deleted", userId);
+    }
+
+    public Map<String, Object> exportUserData(UUID userId) {
+        UserEntity user = userRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("user", user);
+        data.put("memberships", user.getMemberships());
+
+        return data;
+    }
+
+    public List<UserEntity> getUsers() {
+        return userRepository.findAll();
+    }
+
+    public List<UserEntity> getUsersOfOrganization(UUID orgId) {
+        return userRepository.findUsersByOrganization(orgId);
+    }
+
+    private OrganizationEntity getOrganization(UUID orgId) {
+        return organizationRepository.findById(orgId)
+                .orElseThrow(() -> new RuntimeException("Organization not found"));
+    }
+
+    private UserEntity getUser(UUID userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Transactional
+    public JoinRequestEntity sendJoinRequest(UUID orgId, UUID userId) {
+        OrganizationEntity org = getOrganization(orgId);
+        UserEntity user = getUser(userId);
+
+        // Preverimo ali je že član organizacije
+        membershipRepository.findByUserIdAndOrganizationId(userId, orgId)
+                .ifPresent(m -> {
+                    throw new RuntimeException("User is already a member of organization");
+                });
+
+        // Preverimo ali je uporabnik že poslal prošnjo
+        joinRequestRepository.findByUserIdAndOrganizationId(userId, orgId)
+                .filter(jr -> jr.getStatus() == JoinRequestStatus.PENDING)
+                .ifPresent(jr -> {
+                    throw new RuntimeException("User already has a pending join request");
+                });
+
+        // Preverimo ali je uporabnik dobil povabilo
+        List<InvitationEntity> pendingInvites =
+                invitationRepository.findByOrganizationIdAndStatusAndUserId(orgId, InvitationStatus.PENDING, userId);
+
+        if (!pendingInvites.isEmpty()) {
+            throw new RuntimeException("User already has a pending invitation to this organization");
+        }
+
+        JoinRequestEntity request = new JoinRequestEntity();
+        request.setUser(user);
+        request.setOrganization(org);
+        request.setStatus(JoinRequestStatus.PENDING);
+        request.setCreatedAt(LocalDateTime.now());
+        request.setHandledAt(null);
+        request.setHandledByUserId(null);
+
+        JoinRequestEntity saved = joinRequestRepository.save(request);
+        log.info("User {} requested to join organization {}", userId, orgId);
+        return saved;
+    }
+
+    public UserEntity createLocalUserProfile(String keycloakId, String email, String username, String fisrtName, String lastName) {
+        UserEntity user = new UserEntity();
+        user.setKeycloakId(keycloakId);
+        user.setEmail(email);
+        user.setUsername(username);
+        user.setFirstName(fisrtName);
+        user.setLastName(lastName);
+        user.setCreatedAt(LocalDateTime.now());
+        return userRepository.save(user);
+    }
+}

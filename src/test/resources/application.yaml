@@ -1,0 +1,62 @@
+server:
+    port: 8082
+
+spring:
+    application:
+        name: user-service
+
+    datasource:
+        url: jdbc:postgresql://localhost:5432/planify
+        username: planify
+        password: planify
+        driver-class-name: org.postgresql.Driver
+
+    jpa:
+        hibernate:
+            ddl-auto: create-drop
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+        show-sql: false
+
+    security:
+        oauth2:
+            resourceserver:
+                jwt:
+                    issuer-uri: http://localhost:9080/realms/planify
+                    jwk-set-uri: http://localhost:9080/realms/planify/protocol/openid-connect/certs
+
+    kafka:
+        bootstrap-servers: localhost:9092
+        consumer:
+            group-id: ${spring.application.name}
+            auto-offset-reset: earliest
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+    flyway:
+        enabled: false
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "*"
+
+    endpoint:
+        health:
+            show-details: always
+            probes:
+                enabled: true
+
+springdoc:
+    swagger-ui:
+        path: /swagger-ui.html
+    api-docs:
+        path: /api-docs
+
+logging:
+    level:
+        com.planify: DEBUG
+        org.springframework.web: INFO
