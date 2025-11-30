@@ -41,6 +41,13 @@ spring:
         default-schema: auth
         create-schemas: true
 
+keycloak:
+    url: http://localhost:9080
+    realm: planify
+    admin:
+        username: admin
+        password: admin
+
 management:
     endpoints:
         web:
