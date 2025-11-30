@@ -1,8 +1,7 @@
 package com.planify.user_service.service;
 
-import com.planify.user_service.model.KeycloakRole;
-import com.planify.user_service.model.RegisterRequest;
-import com.planify.user_service.model.UserEntity;
+import com.planify.user_service.model.*;
+import com.planify.user_service.repository.OrganizationMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -10,10 +9,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +22,7 @@ public class AuthService {
     private final String realm = "planify";
     private final String clientId = "planify-frontend";
     private final String clientSecret = "YOUR_CLIENT_SECRET";
+    private final OrganizationMembershipRepository organizationMembershipRepository;
 
     public Map<String, Object> registerUser(RegisterRequest request) {
 
@@ -157,5 +154,14 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to get admin token. " + e.getMessage());
         }
+    }
+
+    public String getRolesForOrganiyation(UUID orgId) {
+        UserEntity user = userService.getCurrentUser();
+        Optional<OrganizationMembershipEntity> membershipEntity = organizationMembershipRepository.findByUserIdAndOrganizationId(user.getId(), orgId);
+        OrganizationRole role = membershipEntity
+                .map(OrganizationMembershipEntity::getRole)
+                .orElse(null);
+        return role != null ? role.toString() : null;
     }
 }
