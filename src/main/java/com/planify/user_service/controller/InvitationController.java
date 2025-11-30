@@ -24,7 +24,7 @@ public class InvitationController {
      * Pridobi vsa povabila v sistemu
      * @return seznam vseh povabil v sistemu
      */
-    @PreAuthorize("hasRole('administrator')")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
     @GetMapping
     public ResponseEntity<List<InvitationEntity>> getInvitations() {
         List<InvitationEntity> invitations = invitationsService.getInvitations();

@@ -25,7 +25,7 @@ public class UserController {
      * Pridobimo vse uporabnike v naši bazi
      * @return seznam uporabnikov
      */
-    @PreAuthorize("hasRole('administrator')")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
     @GetMapping
     public ResponseEntity<List<UserEntity>> getUsers() {
         List<UserEntity> users = userService.getUsers();

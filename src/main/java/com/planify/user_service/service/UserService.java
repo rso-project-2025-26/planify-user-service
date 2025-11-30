@@ -150,4 +150,26 @@ public class UserService {
         user.setCreatedAt(LocalDateTime.now());
         return userRepository.save(user);
     }
+
+    @Transactional
+    public void provisionUser(String keycloakId, String email, String username, String fisrtName, String lastName) {
+
+        Optional<UserEntity> existing = userRepository.findByKeycloakId(keycloakId);
+
+        if (existing.isPresent()) {
+            return;
+        }
+
+        UserEntity user = new UserEntity();
+        user.setKeycloakId(keycloakId);
+        user.setEmail(email);
+        user.setUsername(username);
+        user.setFirstName(fisrtName);
+        user.setLastName(lastName);
+        user.setCreatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        log.info("Provisioned new user: {} ({})", username, keycloakId);
+    }
 }
