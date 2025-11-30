@@ -1,6 +1,8 @@
 package com.planify.user_service.service;
 
+import com.planify.user_service.event.KafkaProducer;
 import com.planify.user_service.model.*;
+import com.planify.user_service.model.event.JoinRequestEvent;
 import com.planify.user_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +10,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -21,6 +25,8 @@ public class UserService {
     private final InvitationRepository invitationRepository;
     private final OrganizationMembershipRepository membershipRepository;
     private final JoinRequestRepository joinRequestRepository;
+
+    private final KafkaProducer kafkaProducer;
 
 
     /**
@@ -136,6 +142,19 @@ public class UserService {
         request.setHandledByUserId(null);
 
         JoinRequestEntity saved = joinRequestRepository.save(request);
+
+        // Kafka event ob pošiljanju zahteve za vstop v organizacijo
+        var event = new JoinRequestEvent(
+                "SENT",
+                request.getId(),
+                orgId,
+                org.getName(),
+                user.getId(),
+                user.getUsername(),
+                Instant.now()
+        );
+        kafkaProducer.publishJoinRequestEvent(event);
+
         log.info("User {} requested to join organization {}", userId, orgId);
         return saved;
     }

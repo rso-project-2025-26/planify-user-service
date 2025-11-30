@@ -70,3 +70,9 @@ logging:
     level:
         com.planify: DEBUG
         org.springframework.web: INFO
+
+planify:
+    kafka:
+        topic:
+            join-requests: user.join-requests
+            invitations: user.invitations

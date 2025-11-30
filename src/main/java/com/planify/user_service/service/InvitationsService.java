@@ -1,6 +1,8 @@
 package com.planify.user_service.service;
 
+import com.planify.user_service.event.KafkaProducer;
 import com.planify.user_service.model.*;
+import com.planify.user_service.model.event.InvitationEvent;
 import com.planify.user_service.repository.InvitationRepository;
 import com.planify.user_service.repository.OrganizationMembershipRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +24,8 @@ public class InvitationsService {
     private final OrganizationMembershipRepository membershipRepository;
 
     private final UserService userService;
+
+    private final KafkaProducer kafkaProducer;
 
     public List<InvitationEntity> getInvitations() {
         return invitationRepository.findAll();
@@ -68,6 +73,20 @@ public class InvitationsService {
         invitation.setAcceptedAt(LocalDateTime.now());
         invitationRepository.save(invitation);
 
+        // Sproižimo Kafka dogodek, da je vabilo v organizacijo sprejeto
+        var event = new InvitationEvent(
+                "ACCEPTED",
+                invitation.getId(),
+                org.getId(),
+                org.getSlug(),
+                org.getName(),
+                invitation.getExpiresAt(),
+                user.getId(),
+                user.getUsername(),
+                Instant.now()
+        );
+        kafkaProducer.publishInvitationEvent(event);
+
         log.info("Invitation {} accepted by {} in org {}",
                 invitation.getId(), user.getId(), org.getId());
 
@@ -87,6 +106,19 @@ public class InvitationsService {
 
         invitationRepository.delete(invitation);
 
+        // Sproižimo Kafka dogodek, da je vabilo v organizacijo zavrnjeno
+        var event = new InvitationEvent(
+                "DECLINED",
+                invitation.getId(),
+                invitation.getOrganization().getId(),
+                invitation.getOrganization().getSlug(),
+                invitation.getOrganization().getName(),
+                invitation.getExpiresAt(),
+                user.getId(),
+                user.getUsername(),
+                Instant.now()
+        );
+        kafkaProducer.publishInvitationEvent(event);
         log.info("Invitation {} declined by {}",
                 invitation.getId(), user.getId());
     }

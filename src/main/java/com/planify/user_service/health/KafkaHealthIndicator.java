@@ -10,21 +10,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class KafkaHealthIndicator implements HealthIndicator {
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     public Health health() {
         try {
-            // Pingamo Kafko tako da pošljemo metadata zahtevek
-            kafkaTemplate.partitionsFor("health-check-topic");
-
-            return Health.up().withDetail("kafka", "Available").build();
-
+            kafkaTemplate.send("health-check", "ok");
+            return Health.up().build();
         } catch (Exception e) {
-            return Health.down()
-                    .withDetail("kafka", "Unavailable")
-                    .withException(e)
-                    .build();
+            return Health.down(e).build();
         }
     }
 }
