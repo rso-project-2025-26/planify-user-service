@@ -1,78 +1,96 @@
 server:
-    port: 8082
+    port: ${SERVER_PORT:8082}
 
 spring:
     application:
         name: user-service
 
     datasource:
-        url: jdbc:postgresql://localhost:5432/planify
-        username: planify
-        password: planify
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/planify}
+        username: ${DB_USERNAME:planify}
+        password: ${DB_PASSWORD:planify}
         driver-class-name: org.postgresql.Driver
+        hikari:
+            maximum-pool-size: ${DB_POOL_SIZE:10}
+            minimum-idle: ${DB_POOL_MIN_IDLE:5}
+            connection-timeout: ${DB_CONN_TIMEOUT:30000}
 
     jpa:
         hibernate:
-            ddl-auto: validate
+            ddl-auto: ${JPA_DDL_AUTO:validate}
         properties:
             hibernate:
                 dialect: org.hibernate.dialect.PostgreSQLDialect
-                default_schema: auth
-        show-sql: false
+                default_schema: ${DB_SCHEMA:auth}
+        show-sql: ${JPA_SHOW_SQL:false}
 
     security:
         oauth2:
             resourceserver:
                 jwt:
-                    issuer-uri: http://localhost:9080/realms/planify
-                    jwk-set-uri: http://localhost:9080/realms/planify/protocol/openid-connect/certs
+                    issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:9080/realms/planify}
+                    jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:9080/realms/planify/protocol/openid-connect/certs}
 
     kafka:
-        bootstrap-servers: localhost:9092
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
         consumer:
-            group-id: ${spring.application.name}
-            auto-offset-reset: earliest
+            group-id: ${KAFKA_CONSUMER_GROUP:user-service}
+            auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
         producer:
             key-serializer: org.apache.kafka.common.serialization.StringSerializer
             value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
     flyway:
-        schemas: auth
-        default-schema: auth
+        schemas: ${DB_SCHEMA:auth}
+        default-schema: ${DB_SCHEMA:auth}
         create-schemas: true
+        enabled: ${FLYWAY_ENABLED:true}
 
 keycloak:
-    url: http://localhost:9080
-    realm: planify
+    url: ${KEYCLOAK_URL:http://localhost:9080}
+    realm: ${KEYCLOAK_REALM:planify}
     admin:
-        username: admin
-        password: admin
+        username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+        password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
 
 management:
     endpoints:
         web:
             exposure:
-                include: "*"
-
+                include: ${MANAGEMENT_ENDPOINTS:health,info,metrics,prometheus}
     endpoint:
         health:
-            show-details: always
+            show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when-authorized}
             probes:
                 enabled: true
+    metrics:
+        export:
+            prometheus:
+                enabled: ${PROMETHEUS_ENABLED:true}
 
 springdoc:
     swagger-ui:
         path: /swagger-ui.html
+        enabled: ${SWAGGER_ENABLED:true}
     api-docs:
         path: /api-docs
+        enabled: ${SWAGGER_ENABLED:true}
 
 logging:
     level:
-        com.planify: DEBUG
-        org.springframework.web: INFO
+        root: ${LOG_LEVEL_ROOT:INFO}
+        com.planify: ${LOG_LEVEL_APP:DEBUG}
+        org.springframework.web: ${LOG_LEVEL_SPRING_WEB:INFO}
+        org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:INFO}
+        org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:INFO}
+    pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
 planify:
     kafka:
         topic:
-            join-requests: user.join-requests
-            invitations: user.invitations
+            join-requests: ${KAFKA_TOPIC_JOIN_REQUESTS:user.join-requests}
+            invitations: ${KAFKA_TOPIC_INVITATIONS:user.invitations}
+    retention:
+        enabled: ${RETENTION_ENABLED:true}
+        schedule: ${RETENTION_SCHEDULE:0 0 2 * * *}

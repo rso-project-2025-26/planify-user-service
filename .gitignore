@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+### Environment variables and secrets ###
+.env
+.env.local
+.env.*.local
+*.env
+
+### Kubernetes secrets (should use sealed-secrets or external secrets) ###
+**/secrets.yaml.local
+**/secrets-*.yaml
+!**/secrets.yaml
