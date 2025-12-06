@@ -42,6 +42,7 @@ jobs:
             - run: ./mvnw test
 
     build-docker:
+        name: Build Docker Image
         needs: build-and-test
         runs-on: ubuntu-latest
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -72,6 +73,7 @@ jobs:
                   tags: ${{ steps.meta.outputs.tags }}
 
     deploy-to-k8s:
+        name: Deploy to Kubernetes
         needs: build-docker
         runs-on: ubuntu-latest
         steps:
@@ -81,8 +83,14 @@ jobs:
                   echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
                   chmod 600 $HOME/.kube/config
             - run: |
-                  NAMESPACE="planify-main"
-                  IMAGE="${{ env.IMAGE_NAME }}:main"
+                  if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+                    NAMESPACE="planify-main"
+                    IMAGE="${{ env.IMAGE_NAME }}:main"
+                  else
+                    NAMESPACE="planify-dev"
+                    IMAGE="${{ env.IMAGE_NAME }}:dev"
+                  fi
+
                   if kubectl get deployment ${{ env.SERVICE_NAME }} -n ${NAMESPACE} >/dev/null 2>&1; then
                     kubectl set image deployment/${{ env.SERVICE_NAME }} ${{ env.SERVICE_NAME }}=${IMAGE} -n ${NAMESPACE}
                   else
