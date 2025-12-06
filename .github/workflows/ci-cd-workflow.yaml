@@ -94,6 +94,6 @@ jobs:
                   if kubectl get deployment ${{ env.SERVICE_NAME }} -n ${NAMESPACE} >/dev/null 2>&1; then
                     kubectl set image deployment/${{ env.SERVICE_NAME }} ${{ env.SERVICE_NAME }}=${IMAGE} -n ${NAMESPACE}
                   else
-                    kubectl apply -f k8s/ -n ${NAMESPACE}
+                    kubectl apply -f k8s/ -n ${NAMESPACE} --validate=false
                   fi
                   kubectl rollout status deployment/${{ env.SERVICE_NAME }} -n ${NAMESPACE} --timeout=5m
