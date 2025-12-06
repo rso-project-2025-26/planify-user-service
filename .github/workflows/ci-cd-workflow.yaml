@@ -86,15 +86,10 @@ jobs:
             - run: |
                   if [ "${{ github.ref }}" == "refs/heads/main" ]; then
                     NAMESPACE="planify-main"
-                    IMAGE="${{ env.IMAGE_NAME }}:main"
                   else
                     NAMESPACE="planify-dev"
-                    IMAGE="${{ env.IMAGE_NAME }}:dev"
                   fi
+                  IMAGE="ghcr.io/rso-project-2025-26/planify-user-service:latest"
 
-                  if kubectl get deployment ${{ env.SERVICE_NAME }} -n ${NAMESPACE} >/dev/null 2>&1; then
-                    kubectl set image deployment/${{ env.SERVICE_NAME }} ${{ env.SERVICE_NAME }}=${IMAGE} -n ${NAMESPACE}
-                  else
-                    kubectl apply -f k8s/ -n ${NAMESPACE} --validate=false
-                  fi
+                  kubectl set image deployment/user-service user-service=${IMAGE} -n ${NAMESPACE}
                   kubectl rollout status deployment/${{ env.SERVICE_NAME }} -n ${NAMESPACE} --timeout=5m
