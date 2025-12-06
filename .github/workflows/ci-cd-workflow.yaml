@@ -45,7 +45,7 @@ jobs:
         name: Build Docker Image
         needs: build-and-test
         runs-on: ubuntu-latest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' &&  (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         permissions:
             contents: read
             packages: write
@@ -63,8 +63,8 @@ jobs:
                   images: ${{ env.IMAGE_NAME }}
                   tags: |
                       type=ref,event=branch
-                      type=sha,prefix=main-
-                      type=raw,value=latest
+                      type=sha,prefix={{branch}}-
+                      type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             - uses: docker/build-push-action@v5
               with:
                   context: .
