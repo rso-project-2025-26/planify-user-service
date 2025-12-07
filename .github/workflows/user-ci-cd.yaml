@@ -66,7 +66,6 @@ jobs:
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/dev' }}
       - uses: docker/build-push-action@v5
         with:
           context: .
@@ -88,11 +87,13 @@ jobs:
       - run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             NAMESPACE="planify-main"
+            IMAGE_TAG="main"
           else
             NAMESPACE="planify-dev"
+            IMAGE_TAG="dev"
           fi
 
-          IMAGE="ghcr.io/rso-project-2025-26/planify-user-service:latest"
+          IMAGE="ghcr.io/rso-project-2025-26/planify-user-service:${IMAGE_TAG}"
 
           kubectl set image deployment/user-service user-service=${IMAGE} -n ${NAMESPACE}
           kubectl rollout status deployment/${{ env.SERVICE_NAME }} -n ${NAMESPACE} --timeout=5m
