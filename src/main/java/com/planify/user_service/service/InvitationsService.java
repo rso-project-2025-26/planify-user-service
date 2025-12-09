@@ -26,6 +26,7 @@ public class InvitationsService {
     private final UserService userService;
 
     private final KafkaProducer kafkaProducer;
+    private final AuthService authService;
 
     public List<InvitationEntity> getInvitations() {
         return invitationRepository.findAll();
@@ -64,9 +65,10 @@ public class InvitationsService {
         membership.setOrganization(org);
         membership.setRole(invitation.getRole());
         membership.setCreatedAt(LocalDateTime.now());
-        membership.setUpdatedAt(null);
 
         membershipRepository.save(membership);
+
+        authService.assignRole(user.getKeycloakId(), invitation.getRole());
 
         // Posodobimo status povabila
         invitation.setStatus(InvitationStatus.ACCEPTED);

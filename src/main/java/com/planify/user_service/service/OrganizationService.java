@@ -59,7 +59,7 @@ public class OrganizationService {
         OrganizationMembershipEntity membership = new OrganizationMembershipEntity();
         membership.setUser(userCreated);
         membership.setOrganization(savedOrg);
-        membership.setRole(OrganizationRole.ORG_ADMIN);
+        membership.setRole(KeycloakRole.ORG_ADMIN);
         membership.setCreatedAt(LocalDateTime.now());
 
         membershipRepository.save(membership);
@@ -72,9 +72,11 @@ public class OrganizationService {
         return membershipRepository.findByOrganizationId(orgId);
     }
 
-    public Optional<OrganizationRole> getUserRoleInOrganization(UUID userId, UUID orgId) {
+    public List<KeycloakRole> getUserRolesInOrganization(UUID userId, UUID orgId) {
         return membershipRepository.findByUserIdAndOrganizationId(userId, orgId)
-                .map(OrganizationMembershipEntity::getRole);
+                .stream()
+                .map(OrganizationMembershipEntity::getRole)
+                .toList();
     }
 
     private OrganizationEntity getOrganization(UUID orgId) {
@@ -87,9 +89,8 @@ public class OrganizationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    private OrganizationMembershipEntity getMembership(UUID orgId, UUID userId) {
-        return membershipRepository.findByUserIdAndOrganizationId(userId, orgId)
-                .orElseThrow(() -> new RuntimeException("Membership not found"));
+    private List<OrganizationMembershipEntity> getMembership(UUID orgId, UUID userId) {
+        return membershipRepository.findByUserIdAndOrganizationId(userId, orgId);
     }
 
     public List<JoinRequestEntity> getJoinRequests(UUID orgId) {
@@ -99,30 +100,36 @@ public class OrganizationService {
     @Transactional
     public void removeUserFromOrganization(UUID orgId, UUID userId, UUID requestedByUserId) {
         // Preveri, da ima requestedByUserId vloga ORG_ADMIN
-        OrganizationRole requestorRole = getUserRoleInOrganization(requestedByUserId, orgId)
-                .orElseThrow(() -> new RuntimeException("No access"));
-
-        if (!requestorRole.equals(OrganizationRole.ORG_ADMIN)) {
+        if (!isUserOrgAdmin(orgId, requestedByUserId)) {
             throw new RuntimeException("Only administartor can remove members");
         }
 
-        OrganizationMembershipEntity membership = getMembership(orgId, userId);
+        List<OrganizationMembershipEntity> membership = getMembership(orgId, userId);
 
         if (userId == requestedByUserId) {
             throw new RuntimeException("You cannot remove yourself from organization.");
         }
 
-        membershipRepository.delete(membership);
+        membershipRepository.deleteAllById(membership.stream().map(OrganizationMembershipEntity::getId).toList());
+        // Preveri ali ima uporabnik, katero od vlog v katerikoli drugi organizaciji
+        List<OrganizationMembershipEntity> userMemberships = membershipRepository.findByUserId(userId);
+        for (OrganizationMembershipEntity m : membership) {
+            long cnt = userMemberships.stream()
+                    .filter(um -> um.getRole().equals(m.getRole()) && !um.getOrganization().getId().equals(orgId))
+                    .count();
+            if (cnt == 0) {
+                // Če nima v nobeni drugi, odstrani to vlogo iz Keycloaka
+                UserEntity user = getUser(userId);
+                authService.removeRole(user.getKeycloakId(), m.getRole());
+            }
+        }
         log.info("User {} removed from organization {}", userId, orgId);
     }
 
     @Transactional
-    public InvitationEntity inviteUserToOrganization(UUID orgId, UUID userId, UUID requestedByUserId, OrganizationRole role) {
+    public InvitationEntity inviteUserToOrganization(UUID orgId, UUID userId, UUID requestedByUserId, KeycloakRole role) {
         // Preveri, da ima requestedByUserId vloga ORG_ADMIN
-        OrganizationRole requestorRole = getUserRoleInOrganization(requestedByUserId, orgId)
-                .orElseThrow(() -> new RuntimeException("No access"));
-
-        if (!requestorRole.equals(OrganizationRole.ORG_ADMIN)) {
+        if (!isUserOrgAdmin(orgId, requestedByUserId)) {
             throw new RuntimeException("Only administrator can add new members");
         }
 
@@ -146,16 +153,16 @@ public class OrganizationService {
 
         // Ne moremo povabiti uporabnika, ki je že del organizacije
         Optional<OrganizationMembershipEntity> inOrganization =
-                organizationMembershipRepository.findByUserIdAndOrganizationId(userId, orgId);
+                organizationMembershipRepository.findByUserIdAndOrganizationIdAndRole(userId, orgId, role);
 
         if (inOrganization.isPresent()) {
-            throw new RuntimeException("User is already member of the organization");
+            throw new RuntimeException("User already has role " + role.getValue() + " in the organization");
         }
 
         InvitationEntity invitation = new InvitationEntity();
         invitation.setOrganization(org);
         invitation.setUser(invitedUser);
-        invitation.setRole(role != null ? role : OrganizationRole.GUEST);
+        invitation.setRole(role != null ? role : KeycloakRole.GOST);
         invitation.setToken(UUID.randomUUID().toString().replace("-", ""));
         invitation.setStatus(InvitationStatus.PENDING);
         invitation.setCreatedAt(LocalDateTime.now());
@@ -185,10 +192,7 @@ public class OrganizationService {
     @Transactional
     public void approveJoinRequest(UUID orgId, UUID userId, UUID joinRequestId) {
         // Preveri, da ima requestedByUserId vloga ORG_ADMIN
-        OrganizationRole requestorRole = getUserRoleInOrganization(userId, orgId)
-                .orElseThrow(() -> new RuntimeException("No access"));
-
-        if (!requestorRole.equals(OrganizationRole.ORG_ADMIN)) {
+        if (!isUserOrgAdmin(orgId, userId)) {
             throw new RuntimeException("Only administrator can add new members");
         }
 
@@ -207,20 +211,21 @@ public class OrganizationService {
         OrganizationEntity org = joinRequest.getOrganization();
 
         // Preverimo ali je uporabnik že del organizacije
-        membershipRepository.findByUserIdAndOrganizationId(requestByUser.getId(), orgId)
-                .ifPresent(m -> {
-                    throw new RuntimeException("User is already a member of this organization");
-                });
+        if (!membershipRepository.findByUserIdAndOrganizationId(requestByUser.getId(), orgId).isEmpty()) {
+            throw new RuntimeException("User is already a member of the organization");
+        }
 
-        // Ustvarimo membership in uporabniku dodelimo vlogo GUSET
+        // Ustvarimo membership in uporabniku dodelimo vlogo GOST
         OrganizationMembershipEntity membership = new OrganizationMembershipEntity();
         membership.setUser(joinRequest.getUser());
         membership.setOrganization(org);
-        membership.setRole(OrganizationRole.GUEST);
+        membership.setRole(KeycloakRole.GOST);
         membership.setCreatedAt(LocalDateTime.now());
-        membership.setUpdatedAt(null);
 
         membershipRepository.save(membership);
+
+        UserEntity user = getUser(requestByUser.getId());
+        authService.assignRole(user.getKeycloakId(), KeycloakRole.GOST);
 
         // Posodobimo status join request-a
         joinRequest.setStatus(JoinRequestStatus.APPROVED);
@@ -247,10 +252,7 @@ public class OrganizationService {
     @Transactional
     public void rejectJoinRequest(UUID orgId, UUID joinRequestId, UUID userId) {
         // Preveri, da ima requestedByUserId vloga ORG_ADMIN
-        OrganizationRole requestorRole = getUserRoleInOrganization(userId, orgId)
-                .orElseThrow(() -> new RuntimeException("No access"));
-
-        if (!requestorRole.equals(OrganizationRole.ORG_ADMIN)) {
+        if (!isUserOrgAdmin(orgId, userId)) {
             throw new RuntimeException("Only administrator can add new members");
         }
 
@@ -288,31 +290,42 @@ public class OrganizationService {
     @Transactional
     public void changeUserRole(UUID orgId,
                                UUID targetUserId,
-                               OrganizationRole newRole,
+                               KeycloakRole newRole,
                                UUID requestedByUserId) {
         if (newRole == null) {
             throw new RuntimeException("New role must not be null");
         }
 
-        // Preveri, da ima requestedByUserId vloga ORG_ADMIN
-        OrganizationRole requestorRole = getUserRoleInOrganization(requestedByUserId, orgId)
-                .orElseThrow(() -> new RuntimeException("No access"));
-
-        if (!requestorRole.equals(OrganizationRole.ORG_ADMIN)) {
+        if (!isUserOrgAdmin(orgId, requestedByUserId)) {
             throw new RuntimeException("Only administrator can add new members");
         }
 
-        OrganizationMembershipEntity membership = getMembership(orgId, targetUserId);
+        List<OrganizationMembershipEntity> membership = getMembership(orgId, targetUserId);
 
-        if (membership.getRole() == newRole) {
+        if (membership.stream().anyMatch(m -> m.getRole().equals(newRole))) {
             return; // Nič ne naredimo
         }
 
-        membership.setRole(newRole);
-        membership.setUpdatedAt(LocalDateTime.now());
-        membershipRepository.save(membership);
+        UserEntity targetUser = getUser(targetUserId);
+        OrganizationEntity org = getOrganization(orgId);
+        OrganizationMembershipEntity newMembership = new OrganizationMembershipEntity();
+        newMembership.setUser(targetUser);
+        newMembership.setOrganization(org);
+        newMembership.setRole(KeycloakRole.GOST);
+        newMembership.setCreatedAt(LocalDateTime.now());
+
+        membershipRepository.save(newMembership);
+
+
+        authService.assignRole(targetUser.getKeycloakId(), newRole);
 
         log.info("Role of user {} in organization {} changed to {} by {}",
                 targetUserId, orgId, newRole, requestedByUserId);
+    }
+
+    public boolean isUserOrgAdmin(UUID orgId, UUID userId) {
+        List<KeycloakRole> role = getUserRolesInOrganization(userId, orgId);
+
+        return role.stream().anyMatch(m -> m.equals(KeycloakRole.ORG_ADMIN));
     }
 }

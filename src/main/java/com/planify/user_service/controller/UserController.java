@@ -65,7 +65,7 @@ public class UserController {
             @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     @GetMapping("{orgId}/users")
     public ResponseEntity<List<UserEntity>> getOrganizationsUsers(@PathVariable("orgId") UUID orgId) {
         try{

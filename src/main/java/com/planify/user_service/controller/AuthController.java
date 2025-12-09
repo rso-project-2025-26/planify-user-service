@@ -54,9 +54,9 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Pri pridobivanju vloge je prišlo do napake")
     })
     @GetMapping("{orgId}/roles")
-    public ResponseEntity<String> getRoles(@PathVariable UUID orgId) {
+    public ResponseEntity<?> getRoles(@PathVariable UUID orgId) {
         try{
-            String role = authService.getRolesForOrganiyation(orgId);
+            List<String> role = authService.getRolesForOrganization(orgId);
             return ResponseEntity.ok(role);
         } catch (Exception e) {
             log.error(e.getMessage());

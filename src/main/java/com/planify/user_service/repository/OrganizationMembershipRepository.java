@@ -1,5 +1,6 @@
 package com.planify.user_service.repository;
 
+import com.planify.user_service.model.KeycloakRole;
 import com.planify.user_service.model.OrganizationMembershipEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,5 +13,6 @@ public interface OrganizationMembershipRepository extends JpaRepository<Organiza
 
     List<OrganizationMembershipEntity> findByOrganizationId(UUID organizationId);
 
-    Optional<OrganizationMembershipEntity> findByUserIdAndOrganizationId(UUID userId, UUID orgId);
+    List<OrganizationMembershipEntity> findByUserIdAndOrganizationId(UUID userId, UUID orgId);
+    Optional<OrganizationMembershipEntity> findByUserIdAndOrganizationIdAndRole(UUID userId, UUID orgId, KeycloakRole role);
 }

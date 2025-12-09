@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "organization_memberships", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_id", "organization_id" })
+        @UniqueConstraint(columnNames = { "user_id", "organization_id", "role" })
 })
 @Data
 @NoArgsConstructor
@@ -28,11 +28,8 @@ public class OrganizationMembershipEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrganizationRole role = OrganizationRole.GUEST;
+    private KeycloakRole role = KeycloakRole.GOST;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

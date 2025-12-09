@@ -1,0 +1,3 @@
+ALTER TABLE organization_memberships DROP CONSTRAINT organization_memberships_user_id_organization_id_key;
+ALTER TABLE organization_memberships ADD CONSTRAINT organization_memberships_user_org_unique UNIQUE (user_id, organization_id, role);
+ALTER TABLE organization_memberships DROP COLUMN updated_at;

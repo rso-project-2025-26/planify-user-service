@@ -102,7 +102,7 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Organization not found"));
     }
 
-    private UserEntity getUser(UUID userId) {
+    UserEntity getUser(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
@@ -113,10 +113,9 @@ public class UserService {
         UserEntity user = getUser(userId);
 
         // Preverimo ali je že član organizacije
-        membershipRepository.findByUserIdAndOrganizationId(userId, orgId)
-                .ifPresent(m -> {
-                    throw new RuntimeException("User is already a member of organization");
-                });
+        if(!membershipRepository.findByUserIdAndOrganizationId(userId, orgId).isEmpty()) {
+            throw new RuntimeException("User is already a member of organization");
+        }
 
         // Preverimo ali je uporabnik že poslal prošnjo
         joinRequestRepository.findByUserIdAndOrganizationId(userId, orgId)
