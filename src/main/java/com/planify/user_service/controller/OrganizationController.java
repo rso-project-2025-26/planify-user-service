@@ -70,11 +70,11 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @PostMapping("/{orgId}/invite")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> inviteUser(
             @PathVariable UUID orgId,
             @RequestParam UUID userId,
-            @RequestParam(required = false) OrganizationRole role) {
+            @RequestParam(required = false) KeycloakRole role) {
         try {
             // pridobimo uporabnika, ki je poslal zahtevek
             UserEntity user = userService.getCurrentUser();
@@ -107,7 +107,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @DeleteMapping("/{orgId}/members/{userId}")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> removeUser(
             @PathVariable UUID orgId,
             @PathVariable UUID userId) {
@@ -141,7 +141,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @PostMapping("/{orgId}/join-request/{requestId}/approve")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> approveJoinRequest(
             @PathVariable UUID orgId,
             @PathVariable UUID requestId) {
@@ -175,7 +175,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @PostMapping("/{orgId}/join-request/{requestId}/reject")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> rejectJoinRequest(
             @PathVariable UUID orgId,
             @PathVariable UUID requestId) {
@@ -207,7 +207,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @GetMapping("/{orgId}/join-requests")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<List<JoinRequestEntity>> getJoinRequests(
             @PathVariable UUID orgId) {
         try{
@@ -238,11 +238,11 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @PostMapping("/{orgId}/members/{userId}/role")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> changeUserRole(
             @PathVariable UUID orgId,
             @PathVariable UUID userId,
-            @RequestParam OrganizationRole newRole) {
+            @RequestParam KeycloakRole newRole) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
             UserEntity user = userService.getCurrentUser();
@@ -271,7 +271,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @GetMapping("/{orgId}/members")
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<List<OrganizationMembershipEntity>> getMembers(
             @PathVariable UUID orgId) {
         try{

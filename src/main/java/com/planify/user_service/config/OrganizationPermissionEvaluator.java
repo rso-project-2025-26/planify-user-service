@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,12 +25,11 @@ public class OrganizationPermissionEvaluator {
         String keycloakId = auth.getName();
         UUID userId = userRepository.findUserIdByKeycloakId(keycloakId);
 
-        Optional<OrganizationMembershipEntity> membershipEntity = membershipRepository
+        List<OrganizationMembershipEntity> membershipEntity = membershipRepository
                 .findByUserIdAndOrganizationId(userId, orgId);
 
         return membershipEntity
-                .map(m -> m.getRole().name().equals(role))
-                .orElse(false);
+                .stream().anyMatch(m -> m.getRole() != null && m.getRole().equals(role));
     }
 
     public boolean isAdmin(UUID orgId, Authentication auth) {
@@ -37,7 +37,7 @@ public class OrganizationPermissionEvaluator {
     }
 
     public boolean isOrganizer(UUID orgId, Authentication auth) {
-        return hasRole(orgId, "ORGANIZER", auth);
+        return hasRole(orgId, "ORGANIZATOR", auth);
     }
 
     public boolean isMember(UUID orgId, Authentication auth) {
@@ -45,8 +45,8 @@ public class OrganizationPermissionEvaluator {
 
         UUID userId = UUID.fromString(auth.getName());
 
-        return membershipRepository
+        return !(membershipRepository
                 .findByUserIdAndOrganizationId(userId, orgId)
-                .isPresent();
+                .isEmpty());
     }
 }

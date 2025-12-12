@@ -225,7 +225,7 @@ class UserServiceTest {
         when(userRepository.findByIdAndDeletedAtIsNull(testUserId))
                 .thenReturn(Optional.of(testUser));
         when(membershipRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
         when(joinRequestRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
                 .thenReturn(Optional.empty());
         when(invitationRepository.findByOrganizationIdAndStatusAndUserId(
@@ -260,7 +260,7 @@ class UserServiceTest {
         when(userRepository.findByIdAndDeletedAtIsNull(testUserId))
                 .thenReturn(Optional.of(testUser));
         when(membershipRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
-                .thenReturn(Optional.of(membership));
+                .thenReturn(List.of(membership));
 
         // Act & Assert
         assertThrows(RuntimeException.class,
@@ -279,7 +279,7 @@ class UserServiceTest {
         when(userRepository.findByIdAndDeletedAtIsNull(testUserId))
                 .thenReturn(Optional.of(testUser));
         when(membershipRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
-                .thenReturn(Optional.empty());
+                .thenReturn(List.of());
         when(joinRequestRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
                 .thenReturn(Optional.of(existingRequest));
 
