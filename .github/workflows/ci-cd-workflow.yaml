@@ -88,13 +88,10 @@ jobs:
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             NAMESPACE="planify-main"
-            IMAGE_TAG="main" 
-          elif [ "${{ github.ref }}" == "refs/heads/dev" ]; then
-            NAMESPACE="planify-dev"
-            IMAGE_TAG="dev"
+            IMAGE_TAG="main"
           else
             NAMESPACE="planify-dev"
-            IMAGE_TAG="${{ steps.meta.outputs.sha-tag }}" 
+            IMAGE_TAG="dev" 
           fi
           
           helm upgrade --install user-service ./helm/user-service \
