@@ -28,7 +28,7 @@ public class OrganizationMembershipEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private KeycloakRole role = KeycloakRole.GOST;
+    private KeycloakRole role = KeycloakRole.GUEST;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

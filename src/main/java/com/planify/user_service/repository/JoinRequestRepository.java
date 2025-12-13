@@ -11,5 +11,7 @@ import java.util.UUID;
 public interface JoinRequestRepository extends JpaRepository<JoinRequestEntity, UUID> {
     List<JoinRequestEntity> findByOrganizationIdAndStatus(UUID orgId, JoinRequestStatus status);
 
-    Optional<JoinRequestEntity> findByUserIdAndOrganizationId(UUID userId, UUID orgId);
+    List<JoinRequestEntity> findByUserIdAndOrganizationId(UUID userId, UUID orgId);
+
+    List<JoinRequestEntity> findByUserIdAndStatus(UUID userId, JoinRequestStatus ststus);
 }

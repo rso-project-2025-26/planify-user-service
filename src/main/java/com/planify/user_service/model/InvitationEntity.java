@@ -26,7 +26,7 @@ public class InvitationEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private KeycloakRole role = KeycloakRole.GOST;
+    private KeycloakRole role = KeycloakRole.GUEST;
 
     @Column(nullable = false, unique = true)
     private String token; // Random string za sprejemanje povabila

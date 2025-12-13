@@ -90,6 +90,33 @@ public class OrganizationController {
 
     }
 
+    /**
+     * Pridobi id organizacije glede na prijavljenega administratora organizacije.
+     * @return Identifikator organizacije.
+     */
+    @Operation(
+            summary = "Pridobi identifikator organizacije trenutno prijavljenega administratorja organizacije.",
+            description = "Vrne identifikator organizacije."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Uspešno pridobljen identifikator organizaije"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju identifikatorja organizacije"),
+            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+    })
+    @GetMapping("/admin/org")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public ResponseEntity<?> getOrganizationsId() {
+        try{
+            // pridobimo uporabnika, ki je poslal zahtevek
+            UserEntity admin = userService.getCurrentUser();
+            OrganizationSummary org = organizationService.getOrganizationByAdmin(admin.getId());
+            return ResponseEntity.ok(List.of(org));
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
 
     /**
      * Odstranimo uporabnika iz organizacije
@@ -124,6 +151,36 @@ public class OrganizationController {
 
     }
 
+    /**
+     * Odstranimo uporabnika iz organizacije
+     * @param orgId: Id organizacije, iz katere hočemo odstraniti uporabnika
+     * @return sporočilo, da je bil uspešno izbrisan
+     */
+    @Operation(
+            summary = "Odstrani trenutno prijavljenega uporabnika iz organizacije",
+            description = "Trenutno prijavljenega uporabnika odstrani iz organizacije. To lahko naredi le administrator organizacije."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Uporabnik uspešno odstranjen"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri odstranjevanju uporabnika"),
+            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+    })
+    @DeleteMapping("/me/memberships/{orgId}")
+    @PreAuthorize("hasRole('UPORABNIK')")
+    public ResponseEntity<?> removeCurrentUser(
+            @PathVariable UUID orgId) {
+        try{
+            // pridobimo uporabnika, ki je poslal zahtevek
+            UserEntity user = userService.getCurrentUser();
+
+            organizationService.removeMyselfFromOrganization(orgId, user.getId());
+            return ResponseEntity.status(204).body("User removed successfully");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+
+    }
 
     /**
      * Odobri poslano zahtevo za vstop v organizacijo
@@ -150,7 +207,7 @@ public class OrganizationController {
             UserEntity user = userService.getCurrentUser();
 
             organizationService.approveJoinRequest(orgId, user.getId(), requestId);
-            return ResponseEntity.ok("Join request approved");
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
@@ -225,7 +282,7 @@ public class OrganizationController {
      * Spremeni vlogo v organizaciji uporbaniku
      * @param orgId: id organizacije
      * @param userId: Id uporabnika, kateremu želimo spremeniti vlogo v organizaciji
-     * @param newRole: nova vloga, ki jo hočemo dodeliti uporabniku
+     * @param newRoles: seznam novih vlog, ki jih hočemo dodeliti uporabniku
      * @return obvestilo, da je vloga bila uspešno zamenjana
      */
     @Operation(
@@ -237,18 +294,17 @@ public class OrganizationController {
             @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri spreminjanju vloge"),
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
-    @PostMapping("/{orgId}/members/{userId}/role")
+    @PutMapping("/{orgId}/members/{userId}/role")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> changeUserRole(
             @PathVariable UUID orgId,
             @PathVariable UUID userId,
-            @RequestParam KeycloakRole newRole) {
+            @RequestParam List<KeycloakRole> newRoles) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
             UserEntity user = userService.getCurrentUser();
-
-            organizationService.changeUserRole(orgId, userId, newRole, user.getId());
-            return ResponseEntity.ok("Role updated");
+            organizationService.changeUserRoles(orgId, userId, newRoles, user.getId());
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
@@ -256,30 +312,57 @@ public class OrganizationController {
     }
 
 
+
     /**
-     * Pridobi vse člane organizacije
-     * @param orgId: id organizacije, za katero hočemo pridobiti člane
-     * @return seznam članstev v organizaciji (uporabniki in njihove vloge)
+     * Pridobimo vse uporabnike organizacije
+     * @param orgId: Id organizacije, za katero hočemo pridobiti uporabnike in njihove vloge
+     * @return seznam uporabnikov
      */
     @Operation(
-            summary = "Pridobi člane organizacije",
-            description = "Pridobi seznam vseh članov znotraj organizacije (skupaj z njihovimi vlogami). To lahko vidi le administrator organizacije."
+            summary = "Pridobimo vse uporabnike organizacije",
+            description = "Vrne seznam vseh članov določene organizacije. Le administrator lahko vidi seznam uporabnikov."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Članstva uspešno pridobljena"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju članstev"),
+            @ApiResponse(responseCode = "200", description = "Uspešno pridobljen seznam"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama uporabnikov"),
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
     @GetMapping("/{orgId}/members")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
-    public ResponseEntity<List<OrganizationMembershipEntity>> getMembers(
-            @PathVariable UUID orgId) {
+    public ResponseEntity<?> getOrganizationsUsers(@PathVariable UUID orgId) {
         try{
-            List<OrganizationMembershipEntity> memberships = organizationService.getOrganizationUsers(orgId);
-            return ResponseEntity.ok(memberships);
+            // pridobimo uporabnika, ki je poslal zahtevek
+            List<UserRoles> users = organizationService.getUsersAndRoles(orgId);
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    /**
+     * Pridobimo vse organizacije v naši bazi glede na iskalno vrednost
+     * @return seznam organizacij
+     */
+    @Operation(
+            summary = "Pridobi orgnizacije prijavljene v sistem",
+            description = "Pridobi seznam vseh organizacij v aplikaciji, katerih slug se začne z iskalno vrednostjo."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
+            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+    })
+    @PreAuthorize("hasRole('UPORABNIK')")
+    @GetMapping("/search")
+    public ResponseEntity<List<OrganizationEntity>> searchOrgs(@RequestParam String query) {
+        try{
+            List<OrganizationEntity> orgs = organizationService.searchOrgs(query);
+            return ResponseEntity.ok(orgs);
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(500).body(null);
         }
     }
+
 }
