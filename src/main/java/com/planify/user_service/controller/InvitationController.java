@@ -1,18 +1,25 @@
 package com.planify.user_service.controller;
 
 import com.planify.user_service.model.InvitationEntity;
+import com.planify.user_service.model.InvitationStatus;
 import com.planify.user_service.model.KeycloakRole;
+import com.planify.user_service.model.UserEntity;
 import com.planify.user_service.service.InvitationsService;
+import com.planify.user_service.service.OrganizationService;
+import com.planify.user_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole;
 
@@ -23,7 +30,9 @@ import static org.springframework.security.authorization.AuthorityAuthorizationM
 @RequiredArgsConstructor
 public class InvitationController {
 
-    public final InvitationsService invitationsService;
+    private final InvitationsService invitationsService;
+    private final UserService userService;
+    private final OrganizationService organizationService;
 
     /**
      * Pridobi vsa povabila v sistemu
@@ -51,6 +60,37 @@ public class InvitationController {
     }
 
     /**
+     * Pridobi vsa neodgovorjena povabila za določeno organizacijo
+     * @return seznam vseh neodgovorjenih povabil organizacije
+     */
+    @Operation(
+            summary = "Pridobi vsa neodgovorjena povabila neke organizacije",
+            description = "Vrne seznam vseh neodgovorjenih povabil za neko organizacijo. Dostop ima le administrator organizacije."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Neodgovorjena povabila uspešno pridobljena"),
+            @ApiResponse(responseCode = "500", description = "Pri pridobivanju je prišlo do napake"),
+            @ApiResponse(responseCode = "403", description = "Uporabnik ni administrator organizacije.")
+    })
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    @GetMapping("/{orgId}/pending")
+    public ResponseEntity<?> getInvitations(@PathVariable UUID orgId) {
+        try{
+            UserEntity user = userService.getCurrentUser();
+            if (!organizationService.isUserOrgAdmin(orgId, user.getId())) {
+                log.error("User {} wanted to view pending invitations of organization {} but is not admin of it.", user.getId(), orgId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User is not admin of the organization");
+            }
+            List<InvitationEntity> invitations = invitationsService.getInvitationsByOrganizationIdAndStatus(orgId, InvitationStatus.PENDING);
+            return ResponseEntity.ok(invitations);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
+    /**
      * Pridobi seznam vseh povabil, za trenutno prijavljenega uporabnika
      * @return seznam povabil v organizacije za prijavljenega uporabnika
      */
@@ -64,10 +104,10 @@ public class InvitationController {
             @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen v aplikaciji")
     })
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("/currentUser")
+    @GetMapping("/currentUser")
     public ResponseEntity<List<InvitationEntity>> getInvitationsByCurrentUser() {
         try{
-            List<InvitationEntity> invitations = invitationsService.getInvitationsByCurrentUserId();
+            List<InvitationEntity> invitations = invitationsService.getInvitationsByCurrentUserIdAndStatus(InvitationStatus.PENDING);
             return ResponseEntity.ok(invitations);
         } catch (Exception e) {
             log.error(e.getMessage());

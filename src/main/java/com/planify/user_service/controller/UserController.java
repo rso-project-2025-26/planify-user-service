@@ -1,6 +1,7 @@
 package com.planify.user_service.controller;
 
 import com.planify.user_service.model.JoinRequestEntity;
+import com.planify.user_service.model.OrganizationEntity;
 import com.planify.user_service.model.UserEntity;
 import com.planify.user_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -52,28 +54,78 @@ public class UserController {
     }
 
     /**
-     * Pridobimo seznam uporabnikov znotraj organizacije
-     * @param orgId: Id organizacije, za katero želimo pridobiti uporabnike
-     * @return seznam uporabnika določene organizacije
+     * Pridobimo vse uporabnike v naši bazi glede na iskalno vrednost
+     * @return seznam uporabnikov
      */
     @Operation(
-            summary = "Pridobi uporabnike znotraj organizacije",
-            description = "Pridobi seznam vseh uporabnikv v organizaciji. To lahko vidi le administrator organizacije."
+            summary = "Pridobi uporabnike sistema",
+            description = "Pridobi seznam vseh uporabnikv v aplikaciji, katerih username se začne z iskalno vrednostjo. To lahko vidi le administrator organizacije."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
             @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
             @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
     })
-    @PreAuthorize("@orgSecurity.isAdmin(#orgId, authentication)")
-    @GetMapping("{orgId}/users")
-    public ResponseEntity<List<UserEntity>> getOrganizationsUsers(@PathVariable("orgId") UUID orgId) {
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    @GetMapping("/search")
+    public ResponseEntity<List<UserEntity>> searchUsers(@RequestParam String username) {
         try{
-            List<UserEntity> users = userService.getUsersOfOrganization(orgId).stream().toList();
+            List<UserEntity> users = userService.searchUsers(username);
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(500).body(null);
+        }
+    }
+
+
+    /**
+     * Pridobimo seznam organizacij, katerih član je trenutni uporabnik
+     * @return seznam organizacij trenutnega uporabnika
+     */
+    @Operation(
+            summary = "Pridobi organizacije, katerih član je uporabnik",
+            description = "Pridobi seznam vseh organizacij v katerih je trenutno prijavljen uporabnik član."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
+            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni prijavljen v sistem")
+    })
+    @PreAuthorize("hasRole('UPORABNIK')")
+    @GetMapping("me/orgs")
+    public ResponseEntity<?> getUsersOrganizations() {
+        try{
+            List<OrganizationEntity> users = userService.getUsersOrganizations().stream().toList();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    /**
+     * Pridobimo seznam poslanih prošenj za včalnitev v organizacije
+     * @return seznam poslanih prošenj, ki še čakajo na odgovor
+     */
+    @Operation(
+            summary = "Pridobi neobdelane poslane prošnje trenutno prijavljenega uporabnika",
+            description = "Pridobi seznam oslanih prošenj, ki še čakajo na odgovor."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
+            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni prijavljen v sistem")
+    })
+    @PreAuthorize("hasRole('UPORABNIK')")
+    @GetMapping("me/join-requests")
+    public ResponseEntity<?> getUsersJoinRequests() {
+        try{
+            List<JoinRequestEntity> users = userService.getPendingUsersJoinRequests().stream().toList();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(e.getMessage());
         }
     }
 

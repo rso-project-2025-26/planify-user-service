@@ -93,6 +93,20 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public List<UserEntity> searchUsers(String serachValue) {
+        return userRepository.findUsersBySearchValue(serachValue);
+    }
+
+    public List<OrganizationEntity> getUsersOrganizations() {
+        UserEntity user = getCurrentUser();
+        return userRepository.findOrganizationByUsers(user.getId());
+    }
+
+    public List<JoinRequestEntity> getPendingUsersJoinRequests() {
+        UserEntity user = getCurrentUser();
+        return joinRequestRepository.findByUserIdAndStatus(user.getId(), JoinRequestStatus.PENDING);
+    }
+
     public List<UserEntity> getUsersOfOrganization(UUID orgId) {
         return userRepository.findUsersByOrganization(orgId);
     }
@@ -102,7 +116,7 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Organization not found"));
     }
 
-    private UserEntity getUser(UUID userId) {
+    UserEntity getUser(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
@@ -113,17 +127,17 @@ public class UserService {
         UserEntity user = getUser(userId);
 
         // Preverimo ali je že član organizacije
-        membershipRepository.findByUserIdAndOrganizationId(userId, orgId)
-                .ifPresent(m -> {
-                    throw new RuntimeException("User is already a member of organization");
-                });
+        if(!membershipRepository.findByUserIdAndOrganizationId(userId, orgId).isEmpty()) {
+            throw new RuntimeException("User is already a member of organization");
+        }
 
         // Preverimo ali je uporabnik že poslal prošnjo
-        joinRequestRepository.findByUserIdAndOrganizationId(userId, orgId)
-                .filter(jr -> jr.getStatus() == JoinRequestStatus.PENDING)
-                .ifPresent(jr -> {
-                    throw new RuntimeException("User already has a pending join request");
-                });
+        List<JoinRequestEntity> requests = joinRequestRepository.findByUserIdAndOrganizationId(userId, orgId)
+                .stream()
+                .filter(jr -> jr.getStatus() == JoinRequestStatus.PENDING).toList();
+        if (!requests.isEmpty()) {
+            throw new RuntimeException("User already has a pending join request");
+        }
 
         // Preverimo ali je uporabnik dobil povabilo
         List<InvitationEntity> pendingInvites =

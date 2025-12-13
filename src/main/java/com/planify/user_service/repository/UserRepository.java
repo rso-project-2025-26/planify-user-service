@@ -18,10 +18,25 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("""
        SELECT u
        FROM UserEntity u
+       WHERE u.username LIKE CONCAT(:searchValue, '%')
+       """)
+    List<UserEntity> findUsersBySearchValue(String searchValue);
+
+    @Query("""
+       SELECT u
+       FROM UserEntity u
        JOIN OrganizationMembershipEntity m ON m.user.id = u.id
        WHERE m.organization.id = :orgId
        """)
     List<UserEntity> findUsersByOrganization(UUID orgId);
+
+    @Query("""
+       SELECT o
+       FROM OrganizationEntity o
+       JOIN OrganizationMembershipEntity m ON m.organization.id = o.id
+       WHERE m.user.id = :userId
+       """)
+    List<OrganizationEntity> findOrganizationByUsers(UUID userId);
 
     @Query("""
         SELECT u.id
