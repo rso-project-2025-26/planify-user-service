@@ -88,15 +88,15 @@ jobs:
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             NAMESPACE="planify-main"
-            IMAGE_TAG="main"
           else
             NAMESPACE="planify-dev"
-            IMAGE_TAG="dev" 
           fi
-          
-          helm upgrade --install user-service ./helm/user-service \
+
+          IMAGE_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+
+          helm upgrade --install user ./user \
             --namespace ${NAMESPACE} \
             --set image.tag=${IMAGE_TAG} \
             --create-namespace \
             --wait \
-            --timeout=10m
+            --timeout=5m
