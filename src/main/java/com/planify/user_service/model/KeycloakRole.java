@@ -6,8 +6,8 @@ public enum KeycloakRole {
     UPORABNIK("uporabnik"),
     ADMINISTRATOR("administrator"),
     ORG_ADMIN("org_admin"),
-    GOST("gost"),
-    ORGANIZATOR("organizator");
+    GUEST("guest"),
+    ORGANISER("organiser");
 
     private final String roleName;
 

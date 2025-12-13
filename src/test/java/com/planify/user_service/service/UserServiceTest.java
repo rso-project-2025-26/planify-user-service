@@ -227,7 +227,7 @@ class UserServiceTest {
         when(membershipRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
                 .thenReturn(List.of());
         when(joinRequestRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
-                .thenReturn(Optional.empty());
+                .thenReturn(Collections.emptyList());
         when(invitationRepository.findByOrganizationIdAndStatusAndUserId(
                 testOrgId, InvitationStatus.PENDING, testUserId))
                 .thenReturn(Collections.emptyList());
@@ -281,7 +281,7 @@ class UserServiceTest {
         when(membershipRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
                 .thenReturn(List.of());
         when(joinRequestRepository.findByUserIdAndOrganizationId(testUserId, testOrgId))
-                .thenReturn(Optional.of(existingRequest));
+                .thenReturn(List.of(existingRequest));
 
         // Act & Assert
         assertThrows(RuntimeException.class,

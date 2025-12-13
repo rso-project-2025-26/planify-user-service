@@ -41,6 +41,15 @@ public class InvitationsService {
         return invitationRepository.findByUserId(userId);
     }
 
+    public List<InvitationEntity> getInvitationsByCurrentUserIdAndStatus(InvitationStatus status) {
+        UUID userId = userService.getCurrentUser().getId();
+        return invitationRepository.findByUserIdAndStatus(userId, status);
+    }
+
+    public List<InvitationEntity> getInvitationsByOrganizationIdAndStatus(UUID orgId, InvitationStatus status) {
+        return invitationRepository.findByOrganizationIdAndStatus(orgId, status);
+    }
+
     @Transactional
     public InvitationEntity acceptInvitation(String invitationToken) {
         UserEntity user = userService.getCurrentUser();
