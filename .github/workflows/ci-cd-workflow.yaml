@@ -1,99 +1,105 @@
 name: User Service - CI/CD
 
 on:
-    push:
-        branches: [main, dev, feature/configuration]
+  push:
+    branches: [main, dev, feature/helm-charts]
 
 env:
-    REGISTRY: ghcr.io
-    SERVICE_NAME: user-service
-    IMAGE_NAME: ghcr.io/rso-project-2025-26/planify-user-service
+  REGISTRY: ghcr.io
+  SERVICE_NAME: user-service
+  IMAGE_NAME: ghcr.io/rso-project-2025-26/planify-user-service
 
 jobs:
-    build-and-test:
-        name: Build & Test
-        runs-on: ubuntu-latest
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
 
-        services:
-            postgres:
-                image: postgres:16
-                env:
-                    POSTGRES_PASSWORD: planify
-                    POSTGRES_USER: planify
-                    POSTGRES_DB: planify
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd pg_isready
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: planify
+          POSTGRES_USER: planify
+          POSTGRES_DB: planify
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-java@v4
-              with:
-                  java-version: "21"
-                  distribution: "temurin"
-                  cache: maven
-            - run: |
-                  chmod +x mvnw
-                  ./mvnw clean install -DskipTests
-            - run: ./mvnw test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+      - run: |
+          chmod +x mvnw
+          ./mvnw clean install -DskipTests
+      - run: ./mvnw test
 
-    build-docker:
-        name: Build Docker Image
-        needs: build-and-test
-        runs-on: ubuntu-latest
-        if: github.event_name == 'push' &&  (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/feature/configuration')
-        permissions:
-            contents: read
-            packages: write
-        steps:
-            - uses: actions/checkout@v4
-            - uses: docker/setup-buildx-action@v3
-            - uses: docker/login-action@v3
-              with:
-                  registry: ${{ env.REGISTRY }}
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
-            - uses: docker/metadata-action@v5
-              id: meta
-              with:
-                  images: ${{ env.IMAGE_NAME }}
-                  tags: |
-                      type=ref,event=branch
-                      type=sha,prefix={{branch}}-
-                      type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            - uses: docker/build-push-action@v5
-              with:
-                  context: .
-                  platforms: linux/arm64
-                  push: true
-                  tags: ${{ steps.meta.outputs.tags }}
+  build-docker:
+    name: Build Docker Image
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/feature/helm-charts')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
 
-    deploy-to-k8s:
-        name: Deploy to Kubernetes
-        needs: build-docker
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - run: |
-                  mkdir -p $HOME/.kube
-                  echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
-                  chmod 600 $HOME/.kube/config
-            - run: |
-                  if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-                    NAMESPACE="planify-main"
-                    IMAGE="${{ env.IMAGE_NAME }}:main"
-                  else
-                    NAMESPACE="planify-dev"
-                    IMAGE="${{ env.IMAGE_NAME }}:dev"
-                  fi
+  deploy-to-k8s:
+    name: Deploy to Kubernetes
+    needs: build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
 
-                  if kubectl get deployment ${{ env.SERVICE_NAME }} -n ${NAMESPACE} >/dev/null 2>&1; then
-                    kubectl set image deployment/${{ env.SERVICE_NAME }} ${{ env.SERVICE_NAME }}=${IMAGE} -n ${NAMESPACE}
-                  else
-                    kubectl apply -f k8s/ -n ${NAMESPACE} --validate=false
-                  fi
-                  kubectl rollout status deployment/${{ env.SERVICE_NAME }} -n ${NAMESPACE} --timeout=5m
+      - name: Set Deployment Variables and Deploy
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            NAMESPACE="planify-main"
+            IMAGE_TAG="main" 
+          elif [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+            NAMESPACE="planify-dev"
+            IMAGE_TAG="dev"
+          else
+            NAMESPACE="planify-dev"
+            IMAGE_TAG="${{ steps.meta.outputs.sha-tag }}" 
+          fi
+          
+          helm upgrade --install user-service ./helm/user-service \
+            --namespace ${NAMESPACE} \
+            --set image.tag=${IMAGE_TAG} \
+            --create-namespace \
+            --wait \
+            --timeout=5m
