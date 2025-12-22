@@ -55,8 +55,10 @@ config:
     bootstrapServers: "kafka-service:9092"
     consumerGroup: "user-service"
     autoOffsetReset: "earliest"
-    topicJoinRequests: "user.join-requests"
-    topicInvitations: "user.invitations"
+    topicJoinRequestSent: "user.join-request-sent"
+    topicJoinRequestResponded: "user.join-request-responded"
+    topicInvitationSent: "user.invitation-sent"
+    topicInvitationResponded: "user.invitation-responded"
   flyway:
     enabled: "true"
   swagger:

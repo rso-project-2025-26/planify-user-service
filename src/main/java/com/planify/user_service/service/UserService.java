@@ -2,7 +2,8 @@ package com.planify.user_service.service;
 
 import com.planify.user_service.event.KafkaProducer;
 import com.planify.user_service.model.*;
-import com.planify.user_service.model.event.JoinRequestEvent;
+import com.planify.user_service.model.event.JoinRequestRespondedEvent;
+import com.planify.user_service.model.event.JoinRequestsSentEvent;
 import com.planify.user_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class UserService {
     @Transactional
     public UserEntity syncUserFromToken() {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String keycloakId = jwt.getSubject();
+        UUID keycloakId = UUID.fromString(jwt.getSubject());
         String email = jwt.getClaimAsString("email");
         String firstName = jwt.getClaimAsString("given_name");
         String lastName = jwt.getClaimAsString("family_name");
@@ -157,23 +158,25 @@ public class UserService {
 
         JoinRequestEntity saved = joinRequestRepository.save(request);
 
+        List<String> adminIds = membershipRepository.findByOrganizationIdAndRole(orgId, KeycloakRole.ORG_ADMIN).stream().map(OrganizationMembershipEntity::getUser).map(UserEntity::getKeycloakId).map(String::valueOf).toList();
+
         // Kafka event ob pošiljanju zahteve za vstop v organizacijo
-        var event = new JoinRequestEvent(
-                "SENT",
+        var event = new JoinRequestsSentEvent(
                 request.getId(),
+                adminIds,
                 orgId,
                 org.getName(),
-                user.getId(),
+                user.getKeycloakId(),
                 user.getUsername(),
                 Instant.now()
         );
-        kafkaProducer.publishJoinRequestEvent(event);
+        kafkaProducer.publishJoinRequestSentEvent(event);
 
         log.info("User {} requested to join organization {}", userId, orgId);
         return saved;
     }
 
-    public UserEntity createLocalUserProfile(String keycloakId, String email, String username, String fisrtName, String lastName) {
+    public UserEntity createLocalUserProfile(UUID keycloakId, String email, String username, String fisrtName, String lastName, Boolean emailConsent, Boolean smsConsent) {
         UserEntity user = new UserEntity();
         user.setKeycloakId(keycloakId);
         user.setEmail(email);
@@ -181,11 +184,13 @@ public class UserService {
         user.setFirstName(fisrtName);
         user.setLastName(lastName);
         user.setCreatedAt(LocalDateTime.now());
+        user.setEmailConsent(emailConsent);
+        user.setSmsConsent(smsConsent);
         return userRepository.save(user);
     }
 
     @Transactional
-    public void provisionUser(String keycloakId, String email, String username, String fisrtName, String lastName) {
+    public void provisionUser(UUID keycloakId, String email, String username, String fisrtName, String lastName) {
 
         Optional<UserEntity> existing = userRepository.findByKeycloakId(keycloakId);
 

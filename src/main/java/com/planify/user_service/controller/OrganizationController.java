@@ -241,7 +241,7 @@ public class OrganizationController {
             UserEntity user = userService.getCurrentUser();
 
             organizationService.rejectJoinRequest(orgId, requestId, user.getId());
-            return ResponseEntity.ok("Join request rejected");
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error(e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());

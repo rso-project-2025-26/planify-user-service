@@ -27,7 +27,7 @@ public class AuthService {
     public Map<String, Object> registerUser(RegisterRequest request) {
 
         // Ustvarimo novega uporabnika v Keycloak-u
-        String keycloakUserId = createKeycloakUser(request);
+        UUID keycloakUserId = createKeycloakUser(request);
 
         // Shranimo uporabnika v naš DB
         UserEntity user = userService.createLocalUserProfile(
@@ -35,7 +35,9 @@ public class AuthService {
                 request.getEmail(),
                 request.getUsername(),
                 request.getFirstName(),
-                request.getLastName()
+                request.getLastName(),
+                request.getConsentEmail(),
+                request.getConsentSms()
         );
 
         // Vračamo profil prijavljenega uporabnika
@@ -45,7 +47,7 @@ public class AuthService {
         return response;
     }
 
-    private String createKeycloakUser(RegisterRequest req) {
+    private UUID createKeycloakUser(RegisterRequest req) {
 
         try {
             String url = keycloakUrl + "/admin/realms/" + realm + "/users";
@@ -75,7 +77,7 @@ public class AuthService {
             }
 
             String location = resp.getHeaders().getLocation().toString();
-            String keycloakUserId = location.substring(location.lastIndexOf("/") + 1);
+            UUID keycloakUserId = UUID.fromString(location.substring(location.lastIndexOf("/") + 1));
 
             // Uporabniku nastavimo geslo
             String pwdUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId + "/reset-password";
@@ -114,7 +116,7 @@ public class AuthService {
         }
     }
 
-    private void assignRoleToUser(String userId, KeycloakRole roleName, String adminToken) {
+    private void assignRoleToUser(UUID userId, KeycloakRole roleName, String adminToken) {
         String normalized = roleName.toString().toLowerCase();
 
         HttpHeaders headers = new HttpHeaders();
@@ -159,7 +161,7 @@ public class AuthService {
         }
     }
 
-    public void assignRole(String userKeycloakId, KeycloakRole role) {
+    public void assignRole(UUID userKeycloakId, KeycloakRole role) {
         assignRoleToUser(userKeycloakId, role, getAdminToken());
     }
 
@@ -173,7 +175,7 @@ public class AuthService {
         return role;
     }
 
-    public void removeRole(String userKeycloakId, KeycloakRole role) {
+    public void removeRole(UUID userKeycloakId, KeycloakRole role) {
         try {
             String adminToken = getAdminToken();
 
