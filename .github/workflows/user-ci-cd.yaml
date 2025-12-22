@@ -120,7 +120,7 @@ jobs:
 
           IMAGE_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
 
-          helm upgrade --install user ./user \
+          helm upgrade --install user ./helm/user \
             --namespace ${NAMESPACE} \
             --set image.tag=${IMAGE_TAG} \
             --create-namespace \
