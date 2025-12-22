@@ -18,8 +18,10 @@ data:
   KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafka.bootstrapServers | quote }}
   KAFKA_CONSUMER_GROUP: {{ .Values.config.kafka.consumerGroup | quote }}
   KAFKA_AUTO_OFFSET_RESET: {{ .Values.config.kafka.autoOffsetReset | quote }}
-  KAFKA_TOPIC_JOIN_REQUESTS: {{ .Values.config.kafka.topicJoinRequests | quote }}
-  KAFKA_TOPIC_INVITATIONS: {{ .Values.config.kafka.topicInvitations | quote }}
+  KAFKA_TOPIC_JOIN_REQUEST_SENT: {{ .Values.config.kafka.topicJoinRequestSent | quote }}
+  KAFKA_TOPIC_JOIN_REQUESTS_RESPONDED: {{ .Values.config.kafka.topicJoinRequestResponded | quote }}
+  KAFKA_TOPIC_INVITATION_SENT: {{ .Values.config.kafka.topicInvitationSent | quote }}
+  KAFKA_TOPIC_INVITATION_RESPONDED: {{ .Values.config.kafka.topicInvitationResponded | quote }}
   FLYWAY_ENABLED: {{ .Values.config.flyway.enabled | quote }}
   SWAGGER_ENABLED: {{ .Values.config.swagger.enabled | quote }}
   LOG_LEVEL_ROOT: {{ .Values.config.logging.levelRoot | quote }}
