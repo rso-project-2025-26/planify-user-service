@@ -27,7 +27,7 @@ public class AuthService {
     public Map<String, Object> registerUser(RegisterRequest request) {
 
         // Ustvarimo novega uporabnika v Keycloak-u
-        String keycloakUserId = createKeycloakUser(request);
+        UUID keycloakUserId = createKeycloakUser(request);
 
         // Shranimo uporabnika v naš DB
         UserEntity user = userService.createLocalUserProfile(
@@ -35,7 +35,9 @@ public class AuthService {
                 request.getEmail(),
                 request.getUsername(),
                 request.getFirstName(),
-                request.getLastName()
+                request.getLastName(),
+                request.getConsentEmail(),
+                request.getConsentSms()
         );
 
         // Vračamo profil prijavljenega uporabnika
@@ -45,7 +47,7 @@ public class AuthService {
         return response;
     }
 
-    private String createKeycloakUser(RegisterRequest req) {
+    private UUID createKeycloakUser(RegisterRequest req) {
 
         try {
             String url = keycloakUrl + "/admin/realms/" + realm + "/users";
@@ -75,7 +77,7 @@ public class AuthService {
             }
 
             String location = resp.getHeaders().getLocation().toString();
-            String keycloakUserId = location.substring(location.lastIndexOf("/") + 1);
+            UUID keycloakUserId = UUID.fromString(location.substring(location.lastIndexOf("/") + 1));
 
             // Uporabniku nastavimo geslo
             String pwdUrl = keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId + "/reset-password";
@@ -102,7 +104,10 @@ public class AuthService {
 
             restTemplate.put(updateUrl, new HttpEntity<>(updates, pwdHeaders));
 
+            KeycloakRole role = req.getRole() != null ? KeycloakRole.fromString(req.getRole()) : KeycloakRole.UPORABNIK;
+
             // Mu dodelimo keycloak vlogo UPORABNIK
+            assignRoleToUser(keycloakUserId, role, adminToken);
             assignRoleToUser(keycloakUserId, KeycloakRole.UPORABNIK, adminToken);
 
             return keycloakUserId;
@@ -111,7 +116,7 @@ public class AuthService {
         }
     }
 
-    private void assignRoleToUser(String userId, KeycloakRole roleName, String adminToken) {
+    private void assignRoleToUser(UUID userId, KeycloakRole roleName, String adminToken) {
         String normalized = roleName.toString().toLowerCase();
 
         HttpHeaders headers = new HttpHeaders();
@@ -156,12 +161,47 @@ public class AuthService {
         }
     }
 
-    public String getRolesForOrganiyation(UUID orgId) {
-        UserEntity user = userService.getCurrentUser();
-        Optional<OrganizationMembershipEntity> membershipEntity = organizationMembershipRepository.findByUserIdAndOrganizationId(user.getId(), orgId);
-        OrganizationRole role = membershipEntity
-                .map(OrganizationMembershipEntity::getRole)
-                .orElse(null);
-        return role != null ? role.toString() : null;
+    public void assignRole(UUID userKeycloakId, KeycloakRole role) {
+        assignRoleToUser(userKeycloakId, role, getAdminToken());
     }
+
+    public List<String> getRolesForOrganization(UUID orgId) {
+        UserEntity user = userService.getCurrentUser();
+        List<OrganizationMembershipEntity> membershipEntity = organizationMembershipRepository.findByUserIdAndOrganizationId(user.getId(), orgId);
+        List<String> role = membershipEntity
+                .stream()
+                .map(m -> m.getRole().getValue())
+                .toList();
+        return role;
+    }
+
+    public void removeRole(UUID userKeycloakId, KeycloakRole role) {
+        try {
+            String adminToken = getAdminToken();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(adminToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // Pridobimo vloga iz Keycloaka
+            String roleUrl = keycloakUrl + "/admin/realms/" + realm + "/roles/" + role.toString().toLowerCase();
+
+            ResponseEntity<Map> roleResp = restTemplate.exchange(roleUrl, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+
+            Map<String, Object> roleRepresentation = roleResp.getBody();
+
+            // Odstranimo vlogo uporabniku
+            String removeUrl =
+                    keycloakUrl + "/admin/realms/" + realm +
+                            "/users/" + userKeycloakId + "/role-mappings/realm";
+
+            List<Map<String, Object>> roles = new ArrayList<>();
+            roles.add(roleRepresentation);
+
+            restTemplate.exchange(removeUrl, HttpMethod.DELETE, new HttpEntity<>(roles, headers), String.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to remove role from user in Keycloak. " + e.getMessage());
+        }
+    }
+
 }

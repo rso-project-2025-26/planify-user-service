@@ -18,7 +18,7 @@ public class UserEntity {
     private UUID id;
 
     @Column(nullable = false, unique = true)
-    private String keycloakId;
+    private UUID keycloakId;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -31,6 +31,12 @@ public class UserEntity {
 
     @Column(nullable = false)
     private String lastName;
+
+    @Column(nullable = false)
+    private Boolean emailConsent = false;
+
+    @Column(nullable = false)
+    private Boolean smsConsent = false;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

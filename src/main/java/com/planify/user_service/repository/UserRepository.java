@@ -9,11 +9,18 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
-    Optional<UserEntity> findByKeycloakId(String keycloakId);
+    Optional<UserEntity> findByKeycloakId(UUID keycloakId);
 
     Optional<UserEntity> findByEmail(String email);
 
     Optional<UserEntity> findByIdAndDeletedAtIsNull(UUID id);
+
+    @Query("""
+       SELECT u
+       FROM UserEntity u
+       WHERE u.username LIKE CONCAT(:searchValue, '%')
+       """)
+    List<UserEntity> findUsersBySearchValue(String searchValue);
 
     @Query("""
        SELECT u
@@ -24,9 +31,17 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     List<UserEntity> findUsersByOrganization(UUID orgId);
 
     @Query("""
+       SELECT o
+       FROM OrganizationEntity o
+       JOIN OrganizationMembershipEntity m ON m.organization.id = o.id
+       WHERE m.user.id = :userId
+       """)
+    List<OrganizationEntity> findOrganizationByUsers(UUID userId);
+
+    @Query("""
         SELECT u.id
           FROM UserEntity u
          WHERE u.keycloakId = :keycloakId
     """)
-    UUID findUserIdByKeycloakId(String keycloakId);
+    UUID findUserIdByKeycloakId(UUID keycloakId);
 }
