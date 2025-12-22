@@ -23,7 +23,7 @@ public class OrganizationPermissionEvaluator {
         if (auth == null || orgId == null || role == null) return false;
 
         String keycloakId = auth.getName();
-        UUID userId = userRepository.findUserIdByKeycloakId(keycloakId);
+        UUID userId = userRepository.findUserIdByKeycloakId(UUID.fromString(keycloakId));
 
         List<OrganizationMembershipEntity> membershipEntity = membershipRepository
                 .findByUserIdAndOrganizationId(userId, orgId);

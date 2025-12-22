@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
-    Optional<UserEntity> findByKeycloakId(String keycloakId);
+    Optional<UserEntity> findByKeycloakId(UUID keycloakId);
 
     Optional<UserEntity> findByEmail(String email);
 
@@ -43,5 +43,5 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
           FROM UserEntity u
          WHERE u.keycloakId = :keycloakId
     """)
-    UUID findUserIdByKeycloakId(String keycloakId);
+    UUID findUserIdByKeycloakId(UUID keycloakId);
 }

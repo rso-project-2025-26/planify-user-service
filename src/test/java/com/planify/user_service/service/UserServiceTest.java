@@ -50,15 +50,17 @@ class UserServiceTest {
     private OrganizationEntity testOrganization;
     private UUID testUserId;
     private UUID testOrgId;
+    private UUID testUserKecloakId;
 
     @BeforeEach
     void setUp() {
         testUserId = UUID.randomUUID();
         testOrgId = UUID.randomUUID();
+        testUserKecloakId = UUID.randomUUID();
 
         testUser = new UserEntity();
         testUser.setId(testUserId);
-        testUser.setKeycloakId("keycloak-123");
+        testUser.setKeycloakId(testUserKecloakId);
         testUser.setEmail("test@example.com");
         testUser.setUsername("testuser");
         testUser.setFirstName("Test");
@@ -77,7 +79,7 @@ class UserServiceTest {
     void testSyncUserFromToken_ExistingUser() {
         // Arrange
         mockSecurityContext();
-        when(userRepository.findByKeycloakId("keycloak-123"))
+        when(userRepository.findByKeycloakId(testUserKecloakId))
                 .thenReturn(Optional.of(testUser));
 
         // Act
@@ -87,7 +89,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(testUserId, result.getId());
         assertEquals("test@example.com", result.getEmail());
-        verify(userRepository).findByKeycloakId("keycloak-123");
+        verify(userRepository).findByKeycloakId(testUserKecloakId);
         verify(userRepository, never()).save(any());
     }
 
@@ -95,7 +97,7 @@ class UserServiceTest {
     void testSyncUserFromToken_NewUser() {
         // Arrange
         mockSecurityContext();
-        when(userRepository.findByKeycloakId("keycloak-123"))
+        when(userRepository.findByKeycloakId(testUserKecloakId))
                 .thenReturn(Optional.empty());
         when(userRepository.save(any(UserEntity.class)))
                 .thenAnswer(invocation -> {
@@ -109,7 +111,7 @@ class UserServiceTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals("keycloak-123", result.getKeycloakId());
+        assertEquals(testUserKecloakId, result.getKeycloakId());
         assertEquals("test@example.com", result.getEmail());
         verify(userRepository).save(any(UserEntity.class));
     }
@@ -118,7 +120,7 @@ class UserServiceTest {
     void testGetCurrentUser() {
         // Arrange
         mockSecurityContext();
-        when(userRepository.findByKeycloakId("keycloak-123"))
+        when(userRepository.findByKeycloakId(testUserKecloakId))
                 .thenReturn(Optional.of(testUser));
 
         // Act
@@ -248,7 +250,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(JoinRequestStatus.PENDING, result.getStatus());
         verify(joinRequestRepository).save(any(JoinRequestEntity.class));
-        verify(kafkaProducer).publishJoinRequestEvent(any());
+        verify(kafkaProducer).publishJoinRequestSentEvent(any());
     }
 
     @Test
@@ -301,26 +303,29 @@ class UserServiceTest {
 
         // Act
         UserEntity result = userService.createLocalUserProfile(
-                "keycloak-456", "new@example.com", "newuser", "New", "User");
+                testUserKecloakId, "new@example.com", "newuser", "New", "User", true, true);
 
         // Assert
         assertNotNull(result);
-        assertEquals("keycloak-456", result.getKeycloakId());
+        assertEquals(testUserKecloakId, result.getKeycloakId());
         assertEquals("new@example.com", result.getEmail());
         assertEquals("newuser", result.getUsername());
+        assertEquals(true, result.getEmailConsent());
+        assertEquals(true, result.getSmsConsent());
         verify(userRepository).save(any(UserEntity.class));
     }
 
     @Test
     void testProvisionUser_NewUser() {
+        UUID newKeycloakId = UUID.randomUUID();
         // Arrange
-        when(userRepository.findByKeycloakId("keycloak-789"))
+        when(userRepository.findByKeycloakId(newKeycloakId))
                 .thenReturn(Optional.empty());
         when(userRepository.save(any(UserEntity.class)))
                 .thenReturn(testUser);
 
         // Act
-        userService.provisionUser("keycloak-789", "provision@example.com",
+        userService.provisionUser(newKeycloakId, "provision@example.com",
                 "provisionuser", "Provision", "User");
 
         // Assert
@@ -330,11 +335,11 @@ class UserServiceTest {
     @Test
     void testProvisionUser_ExistingUser() {
         // Arrange
-        when(userRepository.findByKeycloakId("keycloak-123"))
+        when(userRepository.findByKeycloakId(testUserKecloakId))
                 .thenReturn(Optional.of(testUser));
 
         // Act
-        userService.provisionUser("keycloak-123", "test@example.com",
+        userService.provisionUser(testUserKecloakId, "test@example.com",
                 "testuser", "Test", "User");
 
         // Assert
@@ -355,7 +360,7 @@ class UserServiceTest {
                 claims);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
-                .claim("sub", "keycloak-123")
+                .claim("sub", testUserKecloakId)
                 .claim("email", "test@example.com")
                 .claim("given_name", "Test")
                 .claim("family_name", "User")

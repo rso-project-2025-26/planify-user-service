@@ -28,8 +28,10 @@ data:
     KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
     KAFKA_CONSUMER_GROUP: "user-service"
     KAFKA_AUTO_OFFSET_RESET: "earliest"
-    KAFKA_TOPIC_JOIN_REQUESTS: "user.join-requests"
-    KAFKA_TOPIC_INVITATIONS: "user.invitations"
+    KAFKA_TOPIC_JOIN_REQUEST_SENT: "user.join-request-sent"
+    KAFKA_TOPIC_JOIN_REQUEST_RESPONDED: "user.join-request-responded"
+    KAFKA_TOPIC_INVITATION_SENT: "user.invitation-sent"
+    KAFKA_TOPIC_INVITATION_RESPONDED: "user.invitation-responded"
 
     # Flyway
     FLYWAY_ENABLED: "true"

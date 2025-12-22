@@ -1,16 +1,15 @@
 package com.planify.user_service.model.event;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
-public record InvitationEvent(
-        String eventType,              // SENT / EXPIRED / DECLINED / ACCEPTED
+public record InvitationRespondedEvent(
         UUID invitationId,
-        UUID orgId,
-        String organizationSlug,
+        String eventType,              // DECLINED / ACCEPTED
+        List<String> adminIds,
+        UUID organizationId,
         String organizationName,
-        LocalDateTime expiresAt,
         UUID invitedUserId,
         String invitedUsername,
         Instant occurredAt

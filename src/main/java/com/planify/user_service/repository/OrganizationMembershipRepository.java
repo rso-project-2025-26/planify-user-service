@@ -15,6 +15,7 @@ public interface OrganizationMembershipRepository extends JpaRepository<Organiza
     List<OrganizationMembershipEntity> findByUserId(UUID userId);
 
     List<OrganizationMembershipEntity> findByOrganizationId(UUID organizationId);
+    List<OrganizationMembershipEntity> findByOrganizationIdAndRole(UUID organizationid, KeycloakRole role);
 
     List<OrganizationMembershipEntity> findByUserIdAndOrganizationId(UUID userId, UUID orgId);
     Optional<OrganizationMembershipEntity> findByUserIdAndOrganizationIdAndRole(UUID userId, UUID orgId, KeycloakRole role);

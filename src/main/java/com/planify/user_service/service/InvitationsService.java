@@ -2,7 +2,7 @@ package com.planify.user_service.service;
 
 import com.planify.user_service.event.KafkaProducer;
 import com.planify.user_service.model.*;
-import com.planify.user_service.model.event.InvitationEvent;
+import com.planify.user_service.model.event.InvitationRespondedEvent;
 import com.planify.user_service.repository.InvitationRepository;
 import com.planify.user_service.repository.OrganizationMembershipRepository;
 import lombok.RequiredArgsConstructor;
@@ -84,19 +84,20 @@ public class InvitationsService {
         invitation.setAcceptedAt(LocalDateTime.now());
         invitationRepository.save(invitation);
 
+        List<String> adminIds = membershipRepository.findByOrganizationIdAndRole(org.getId(), KeycloakRole.ORG_ADMIN).stream().map(OrganizationMembershipEntity::getUser).map(UserEntity::getKeycloakId).map(String::valueOf).toList();
+
         // Sproižimo Kafka dogodek, da je vabilo v organizacijo sprejeto
-        var event = new InvitationEvent(
-                "ACCEPTED",
+        var event = new InvitationRespondedEvent(
                 invitation.getId(),
+                "ACCEPTED",
+                adminIds,
                 org.getId(),
-                org.getSlug(),
                 org.getName(),
-                invitation.getExpiresAt(),
-                user.getId(),
+                user.getKeycloakId(),
                 user.getUsername(),
                 Instant.now()
         );
-        kafkaProducer.publishInvitationEvent(event);
+        kafkaProducer.publishInvitationRespondedEvent(event);
 
         log.info("Invitation {} accepted by {} in org {}",
                 invitation.getId(), user.getId(), org.getId());
@@ -117,19 +118,22 @@ public class InvitationsService {
 
         invitationRepository.delete(invitation);
 
+        OrganizationEntity org = invitation.getOrganization();
+        List<String> adminIds = membershipRepository.findByOrganizationIdAndRole(org.getId(), KeycloakRole.ORG_ADMIN).stream().map(OrganizationMembershipEntity::getUser).map(UserEntity::getKeycloakId).map(String::valueOf).toList();
+
+
         // Sproižimo Kafka dogodek, da je vabilo v organizacijo zavrnjeno
-        var event = new InvitationEvent(
-                "DECLINED",
+        var event = new InvitationRespondedEvent(
                 invitation.getId(),
-                invitation.getOrganization().getId(),
-                invitation.getOrganization().getSlug(),
-                invitation.getOrganization().getName(),
-                invitation.getExpiresAt(),
-                user.getId(),
+                "DECLINED",
+                adminIds,
+                org.getId(),
+                org.getName(),
+                user.getKeycloakId(),
                 user.getUsername(),
                 Instant.now()
         );
-        kafkaProducer.publishInvitationEvent(event);
+        kafkaProducer.publishInvitationRespondedEvent(event);
         log.info("Invitation {} declined by {}",
                 invitation.getId(), user.getId());
     }

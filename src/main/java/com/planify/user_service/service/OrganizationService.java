@@ -2,8 +2,8 @@ package com.planify.user_service.service;
 
 import com.planify.user_service.event.KafkaProducer;
 import com.planify.user_service.model.*;
-import com.planify.user_service.model.event.InvitationEvent;
-import com.planify.user_service.model.event.JoinRequestEvent;
+import com.planify.user_service.model.event.InvitationSentEvent;
+import com.planify.user_service.model.event.JoinRequestRespondedEvent;
 import com.planify.user_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -230,18 +230,17 @@ public class OrganizationService {
         InvitationEntity saved = invitationRepository.save(invitation);
 
         // Sproižimo Kafka dogodek, da je poslano novo vabilo v organizacijo
-        var event = new InvitationEvent(
-                "SENT",
+        var event = new InvitationSentEvent(
                 invitation.getId(),
                 orgId,
-                org.getSlug(),
                 org.getName(),
-                invitation.getExpiresAt(),
-                userId,
-                invitedUser.getUsername(),
+                invitedUser.getKeycloakId(),
+                invitedUser.getFirstName(),
+                invitedUser.getLastName(),
+                invitedUser.getEmailConsent() ? invitedUser.getEmail() : null,
                 Instant.now()
         );
-        kafkaProducer.publishInvitationEvent(event);
+        kafkaProducer.publishInvitationSentEvent(event);
 
         log.info("User {} invited to organization {} by {}", userId, orgId, requestedByUserId);
         return saved;
@@ -292,16 +291,18 @@ public class OrganizationService {
         joinRequestRepository.save(joinRequest);
 
         // Kafka event ob privolitvi zahteve
-        var event = new JoinRequestEvent(
+        var event = new JoinRequestRespondedEvent(
                 "APPROVED",
                 joinRequest.getId(),
                 orgId,
                 org.getName(),
-                requestByUser.getId(),
-                requestByUser.getUsername(),
+                requestByUser.getKeycloakId(),
+                requestByUser.getFirstName(),
+                requestByUser.getLastName(),
+                requestByUser.getEmailConsent() ? requestByUser.getEmail() : null,
                 Instant.now()
         );
-        kafkaProducer.publishJoinRequestEvent(event);
+        kafkaProducer.publishJoinRequestRespondedEvent(event);
 
         log.info("Join request {} approved by {} for user {} in org {}",
                 joinRequestId, userId, requestByUser.getId(), orgId);
@@ -331,15 +332,19 @@ public class OrganizationService {
         joinRequestRepository.save(joinRequest);
 
         // Kafka event ob zavrnitvi zahteve
-        var event = new JoinRequestEvent(
+        var event = new JoinRequestRespondedEvent(
                 "REJECTED",
                 joinRequest.getId(),
                 orgId,
                 joinRequest.getOrganization().getName(),
-                joinRequest.getUser().getId(),
-                joinRequest.getUser().getUsername(),
+                joinRequest.getUser().getKeycloakId(),
+                joinRequest.getUser().getFirstName(),
+                joinRequest.getUser().getLastName(),
+                joinRequest.getUser().getEmailConsent() ? joinRequest.getUser().getEmail() : null,
                 Instant.now()
         );
+
+        kafkaProducer.publishJoinRequestRespondedEvent(event);
 
         log.info("Join request {} rejected by {} for user {} in org {}",
                 joinRequestId, userId, joinRequest.getUser().getId(), orgId);

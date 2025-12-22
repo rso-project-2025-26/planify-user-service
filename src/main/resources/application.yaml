@@ -89,8 +89,10 @@ logging:
 planify:
     kafka:
         topic:
-            join-requests: ${KAFKA_TOPIC_JOIN_REQUESTS:user.join-requests}
-            invitations: ${KAFKA_TOPIC_INVITATIONS:user.invitations}
+            join-request-sent: ${KAFKA_TOPIC_JOIN_REQUESTS:user.join-request-sent}
+            join-request-responded: ${KAFKA_TOPIC_JOIN_REQUESTS:user.join-request-responded}
+            invitation-sent: ${KAFKA_TOPIC_INVITATIONS:user.invitation-sent}
+            invitation-responded: ${KAFKA_TOPIC_INVITATIONS:user.invitation-responded}
     retention:
         enabled: ${RETENTION_ENABLED:true}
         schedule: ${RETENTION_SCHEDULE:0 0 2 * * *}
