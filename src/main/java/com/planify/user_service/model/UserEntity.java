@@ -35,6 +35,9 @@ public class UserEntity {
     @Column(nullable = false)
     private Boolean emailConsent = false;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
     @Column(nullable = false)
     private Boolean smsConsent = false;
 

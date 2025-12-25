@@ -44,4 +44,12 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
          WHERE u.keycloakId = :keycloakId
     """)
     UUID findUserIdByKeycloakId(UUID keycloakId);
+
+    @Query("""
+        SELECT u
+          FROM UserEntity u
+         WHERE u.keycloakId = :keycloakId
+           AND u.deletedAt is null
+    """)
+    Optional<UserEntity> findActiveByKeycloakId(UUID keycloakId);
 }
