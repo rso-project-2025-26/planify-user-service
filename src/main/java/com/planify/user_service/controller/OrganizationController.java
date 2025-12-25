@@ -341,6 +341,32 @@ public class OrganizationController {
     }
 
     /**
+     * Pridobimo vse uporabnike organizacije
+     * @param orgId: Id organizacije, za katero hočemo pridobiti uporabnike in njihove vloge
+     * @return seznam keycloak identifikatorjev uporabnikov
+     */
+    @Operation(
+            summary = "Pridobimo vse uporabnike organizacije",
+            description = "Vrne seznam keycloak identifikatorjev vseh članov določene organizacije. Le administrator lahko vidi seznam uporabnikov."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Uspešno pridobljen seznam"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama uporabnikov"),
+            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+    })
+    @GetMapping("/{orgId}/keycloak/members")
+    @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
+    public ResponseEntity<?> getOrganizationsKeycloakUsers(@PathVariable UUID orgId) {
+        try{
+            List<UUID> users = organizationService.getKeycloakUsers(orgId);
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    /**
      * Pridobimo vse organizacije v naši bazi glede na iskalno vrednost
      * @return seznam organizacij
      */
