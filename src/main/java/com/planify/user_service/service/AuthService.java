@@ -33,6 +33,7 @@ public class AuthService {
         UserEntity user = userService.createLocalUserProfile(
                 keycloakUserId,
                 request.getEmail(),
+                request.getMobile(),
                 request.getUsername(),
                 request.getFirstName(),
                 request.getLastName(),

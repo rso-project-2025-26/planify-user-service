@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,6 +55,7 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Pri pridobivanju vloge je prišlo do napake")
     })
     @GetMapping("{orgId}/roles")
+    @PreAuthorize("hasRole('UPORABNIK')")
     public ResponseEntity<?> getRoles(@PathVariable UUID orgId) {
         try{
             List<String> role = authService.getRolesForOrganization(orgId);

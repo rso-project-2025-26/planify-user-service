@@ -54,6 +54,29 @@ public class UserController {
     }
 
     /**
+     * Pridobimo uporabnika glede na keycloak id
+     * @return Uporabnik
+     */
+    @Operation(
+            summary = "Pridobi uporabnika glede na id",
+            description = "Pridobi podatkr o uporabniku v aplikaciji glede na njegov id."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Uporabnik je uspešno pridobljen"),
+            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju uporabnika"),
+    })
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserEntity> getUser(@PathVariable UUID userId) {
+        try{
+            UserEntity user = userService.getUserByKeycoakId(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
      * Pridobimo vse uporabnike v naši bazi glede na iskalno vrednost
      * @return seznam uporabnikov
      */
