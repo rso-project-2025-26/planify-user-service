@@ -140,8 +140,23 @@ jobs:
           echo "=== Deployment Complete ==="
           echo "Namespace: ${NAMESPACE}"
           echo ""
-          echo "External User Service Access:"
-          kubectl get ingress user-service-external-ingress -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-          echo ""
-          echo "Use this URL for Azure Function:"
-          echo "http://$(kubectl get ingress user-service-external-ingress -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/external/user-service"
+          
+          # Wait for ingress to get an IP (timeout after 2 minutes)
+          echo "Waiting for ingress to get external IP..."
+          for i in {1..24}; do
+            INGRESS_IP=$(kubectl get ingress user-service-external-ingress -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            if [ -n "$INGRESS_IP" ]; then
+              echo "External User Service Access: $INGRESS_IP"
+              echo ""
+              echo "Use this URL for Azure Function:"
+              echo "http://${INGRESS_IP}/external/user-service"
+              echo ""
+              echo "Test with: curl http://${INGRESS_IP}/external/user-service/actuator/health"
+              exit 0
+            fi
+            echo "  Attempt $i/24: Waiting for IP assignment..."
+            sleep 5
+          done
+          
+          echo "Warning: Ingress IP not assigned yet. Check manually with:"
+          echo "kubectl get ingress user-service-external-ingress -n ${NAMESPACE}"
