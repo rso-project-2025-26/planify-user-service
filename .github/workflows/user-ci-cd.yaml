@@ -117,12 +117,31 @@ jobs:
           else
             NAMESPACE="planify-dev"
           fi
+          VALUES_FILE="values.yaml"
 
           IMAGE_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
 
           helm upgrade --install user ./helm/user \
             --namespace ${NAMESPACE} \
             --set image.tag=${IMAGE_TAG} \
+            --values ./helm/user/${VALUES_FILE} \
             --create-namespace \
             --wait \
             --timeout=5m
+
+      - name: Get Ingress Information
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            NAMESPACE="planify-main"
+          else
+            NAMESPACE="planify-dev"
+          fi
+          
+          echo "=== Deployment Complete ==="
+          echo "Namespace: ${NAMESPACE}"
+          echo ""
+          echo "External User Service Access:"
+          kubectl get ingress user-service-external-ingress -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+          echo ""
+          echo "Use this URL for Azure Function:"
+          echo "http://$(kubectl get ingress user-service-external-ingress -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/external/user-service"
