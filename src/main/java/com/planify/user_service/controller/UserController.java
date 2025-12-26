@@ -68,7 +68,7 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<UserEntity> getUser(@PathVariable UUID userId) {
         try{
-            UserEntity user = userService.getUserByKeycoakId(userId);
+            UserEntity user = userService.getUser(userId);
             return ResponseEntity.ok(user);
         } catch (Exception e) {
             log.error(e.getMessage());
