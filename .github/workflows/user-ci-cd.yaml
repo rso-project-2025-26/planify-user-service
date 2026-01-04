@@ -114,8 +114,10 @@ jobs:
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             NAMESPACE="planify-main"
+            VALUES_FILE="values-prod.yaml"
           else
             NAMESPACE="planify-dev"
+            VALUES_FILE="values-dev.yaml"
           fi
           VALUES_FILE="values.yaml"
 
@@ -124,6 +126,7 @@ jobs:
           helm upgrade --install user ./helm/user \
             --namespace ${NAMESPACE} \
             --set image.tag=${IMAGE_TAG} \
+            --values ./helm/user/values.yaml \
             --values ./helm/user/${VALUES_FILE} \
             --create-namespace \
             --wait \
