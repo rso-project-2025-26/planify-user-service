@@ -83,6 +83,7 @@ logging:
         org.springframework.web: ${LOG_LEVEL_SPRING_WEB:INFO}
         org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:INFO}
         org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:INFO}
+        io.github.resilience4j: DEBUG
     pattern:
         console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
@@ -96,3 +97,79 @@ planify:
     retention:
         enabled: ${RETENTION_ENABLED:true}
         schedule: ${RETENTION_SCHEDULE:0 0 2 * * *}
+
+# Resilience4j Configuration for Fault Tolerance
+resilience4j:
+    circuitbreaker:
+        instances:
+            keycloakService:
+                registerHealthIndicator: true
+                slidingWindowSize: 10
+                minimumNumberOfCalls: 5
+                permittedNumberOfCallsInHalfOpenState: 3
+                automaticTransitionFromOpenToHalfOpenEnabled: true
+                waitDurationInOpenState: 10s
+                failureRateThreshold: 50
+                eventConsumerBufferSize: 10
+                recordExceptions:
+                    - java.lang.Exception
+                    - java.lang.RuntimeException
+                    - org.springframework.web.client.HttpServerErrorException
+                    - org.springframework.web.client.ResourceAccessException
+                    - java.io.IOException
+                    - java.util.concurrent.TimeoutException
+            defaultCircuitBreaker:
+                registerHealthIndicator: true
+                slidingWindowSize: 100
+                minimumNumberOfCalls: 10
+                permittedNumberOfCallsInHalfOpenState: 3
+                automaticTransitionFromOpenToHalfOpenEnabled: true
+                waitDurationInOpenState: 5s
+                failureRateThreshold: 50
+                eventConsumerBufferSize: 10
+
+    retry:
+        instances:
+            keycloakService:
+                maxAttempts: 3
+                waitDuration: 1s
+                enableExponentialBackoff: true
+                exponentialBackoffMultiplier: 2
+                retryExceptions:
+                    - java.lang.Exception
+                    - java.lang.RuntimeException
+                    - org.springframework.web.client.HttpServerErrorException
+                    - org.springframework.web.client.ResourceAccessException
+                    - java.io.IOException
+            defaultRetry:
+                maxAttempts: 3
+                waitDuration: 500ms
+                enableExponentialBackoff: true
+                exponentialBackoffMultiplier: 2
+
+    bulkhead:
+        instances:
+            keycloakService:
+                maxConcurrentCalls: 10
+                maxWaitDuration: 1s
+            defaultBulkhead:
+                maxConcurrentCalls: 25
+                maxWaitDuration: 0
+
+    ratelimiter:
+        instances:
+            keycloakService:
+                limitForPeriod: 50
+                limitRefreshPeriod: 1s
+                timeoutDuration: 0
+            defaultRateLimiter:
+                limitForPeriod: 100
+                limitRefreshPeriod: 1s
+                timeoutDuration: 0
+
+    timelimiter:
+        instances:
+            keycloakService:
+                timeoutDuration: 5s
+            defaultTimeLimiter:
+                timeoutDuration: 3s
