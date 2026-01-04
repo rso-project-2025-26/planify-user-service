@@ -2,6 +2,8 @@ config:
   springProfilesActive: prod
   jpa:
     showSql: "false"
+  swagger:
+    enabled: "true"
   management:
     endpointsInclude: "health,info,metrics,prometheus"
   logging:

@@ -71,10 +71,10 @@ management:
 springdoc:
     swagger-ui:
         path: /swagger-ui.html
-        enabled: true
+        enabled: ${SWAGGER_ENABLED:true}
     api-docs:
         path: /api-docs
-        enabled: true
+        enabled: ${SWAGGER_ENABLED:true}
 
 logging:
     level:

@@ -4,6 +4,8 @@ config:
     showSql: "true"
   management:
     endpointsInclude: "*"
+  swagger:
+    enabled: "true"
   logging:
     levelApp: "DEBUG"
     levelSpringWeb: "INFO"

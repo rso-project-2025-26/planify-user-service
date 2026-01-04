@@ -68,6 +68,9 @@ config:
   
   flyway:
     enabled: "true"
+
+  swagger:
+    enabled: "true"
   
   management:
     endpointsInclude: "health,info,metrics,prometheus"
