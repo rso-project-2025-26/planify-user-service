@@ -3,8 +3,9 @@ kind: ConfigMap
 metadata:
   name: user-service-config
 data:
-  SERVER_PORT: {{ .Values.config.serverPort | quote }}
+  SERVER_PORT: {{ .Values.config.serverPort | quote }}  
   DB_URL: {{ .Values.config.database.url | quote }}
+  DB_USERNAME: {{ .Values.config.database.username | quote }}
   DB_SCHEMA: {{ .Values.config.database.schema | quote }}
   DB_POOL_SIZE: {{ .Values.config.database.poolSize | quote }}
   DB_POOL_MIN_IDLE: {{ .Values.config.database.poolMinIdle | quote }}
@@ -23,10 +24,9 @@ data:
   KAFKA_TOPIC_INVITATION_SENT: {{ .Values.config.kafka.topicInvitationSent | quote }}
   KAFKA_TOPIC_INVITATION_RESPONDED: {{ .Values.config.kafka.topicInvitationResponded | quote }}
   FLYWAY_ENABLED: {{ .Values.config.flyway.enabled | quote }}
-  SWAGGER_ENABLED: {{ .Values.config.swagger.enabled | quote }}
+  MANAGEMENT_ENDPOINTS_INCLUDE: {{ .Values.config.management.endpointsInclude | quote }}
   LOG_LEVEL_ROOT: {{ .Values.config.logging.levelRoot | quote }}
   LOG_LEVEL_APP: {{ .Values.config.logging.levelApp | quote }}
   LOG_LEVEL_SPRING_WEB: {{ .Values.config.logging.levelSpringWeb | quote }}
   LOG_LEVEL_SPRING_SECURITY: {{ .Values.config.logging.levelSpringSecurity | quote }}
   LOG_LEVEL_HIBERNATE_SQL: {{ .Values.config.logging.levelHibernateSql | quote }}
-  SPRING_PROFILES_ACTIVE: {{ .Values.config.springProfilesActive | quote }}

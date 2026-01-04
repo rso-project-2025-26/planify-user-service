@@ -36,21 +36,27 @@ probes:
     failureThreshold: 3
 
 config:
+  springProfilesActive: "prod"
   serverPort: "8082"
+  
   database:
     url: "jdbc:postgresql://postgres-service:5432/planify"
+    username: "planify"
     schema: "auth"
     poolSize: "10"
     poolMinIdle: "5"
     connTimeout: "30000"
+  
   jpa:
     ddlAuto: "validate"
     showSql: "false"
+  
   keycloak:
     url: "http://keycloak-service:8080"
     realm: "planify"
     issuerUri: "http://keycloak-service:8080/realms/planify"
     jwkSetUri: "http://keycloak-service:8080/realms/planify/protocol/openid-connect/certs"
+  
   kafka:
     bootstrapServers: "kafka-service:9092"
     consumerGroup: "user-service"
@@ -59,19 +65,24 @@ config:
     topicJoinRequestResponded: "user.join-request-responded"
     topicInvitationSent: "user.invitation-sent"
     topicInvitationResponded: "user.invitation-responded"
+  
   flyway:
     enabled: "true"
-  swagger:
-    enabled: "true"
+  
+  management:
+    endpointsInclude: "health,info,metrics,prometheus"
+  
   logging:
-    levelRoot: "INFO"
+    levelRoot: "WARN"
     levelApp: "INFO"
     levelSpringWeb: "WARN"
     levelSpringSecurity: "WARN"
     levelHibernateSql: "WARN"
-  springProfilesActive: "prod"
 
 secrets:
+  postgresSecretName: postgres-secret
+  postgresPasswordKey: POSTGRES_PASSWORD
+  
   database:
     username: "planify"
     password: "planify123"

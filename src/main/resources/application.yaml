@@ -57,24 +57,24 @@ management:
     endpoints:
         web:
             exposure:
-                include: ${MANAGEMENT_ENDPOINTS:health,info,metrics,prometheus}
+                include: ${MANAGEMENT_ENDPOINTS_INCLUDE:health,info,metrics,prometheus}
     endpoint:
         health:
-            show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when-authorized}
+            show-details: when-authorized
             probes:
                 enabled: true
     metrics:
         export:
             prometheus:
-                enabled: ${PROMETHEUS_ENABLED:true}
+                enabled: true
 
 springdoc:
     swagger-ui:
         path: /swagger-ui.html
-        enabled: ${SWAGGER_ENABLED:true}
+        enabled: true
     api-docs:
         path: /api-docs
-        enabled: ${SWAGGER_ENABLED:true}
+        enabled: true
 
 logging:
     level:
@@ -98,7 +98,7 @@ planify:
         enabled: ${RETENTION_ENABLED:true}
         schedule: ${RETENTION_SCHEDULE:0 0 2 * * *}
 
-# Resilience4j Configuration for Fault Tolerance
+# Resilience4j Configuration (keep as-is, these are framework defaults)
 resilience4j:
     circuitbreaker:
         instances:
