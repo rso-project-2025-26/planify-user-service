@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: user-service-config
 data:
-  SERVER_PORT: {{ .Values.config.serverPort | quote }}  
+  SERVER_PORT: {{ .Values.config.serverPort | quote }}
   DB_URL: {{ .Values.config.database.url | quote }}
   DB_USERNAME: {{ .Values.config.database.username | quote }}
   DB_SCHEMA: {{ .Values.config.database.schema | quote }}
