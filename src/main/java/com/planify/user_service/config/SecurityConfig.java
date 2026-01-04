@@ -28,6 +28,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/organizations/**").permitAll() // organizacije
                 .requestMatchers("/internal/**").permitAll() // interni API (zaenkrat)
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/api/resilience/**").permitAll() // Fault tolerance monitoring
                     .requestMatchers(
                             "/api-docs",
                             "/v3/api-docs/**",
