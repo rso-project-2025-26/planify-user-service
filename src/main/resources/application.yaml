@@ -71,10 +71,9 @@ management:
 springdoc:
     swagger-ui:
         path: /swagger-ui.html
-        enabled: ${SWAGGER_ENABLED:true}
+        url: /api-docs
     api-docs:
         path: /api-docs
-        enabled: ${SWAGGER_ENABLED:true}
 
 logging:
     level:

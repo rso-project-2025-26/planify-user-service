@@ -8,8 +8,13 @@ import com.planify.user_service.service.InvitationsService;
 import com.planify.user_service.service.OrganizationService;
 import com.planify.user_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -28,6 +33,8 @@ import static org.springframework.security.authorization.AuthorityAuthorizationM
 @RestController
 @RequestMapping("/api/invitations")
 @RequiredArgsConstructor
+@Tag(name = "Invitations", description = "Organization invitation management endpoints")
+@SecurityRequirement(name = "bearer-jwt")
 public class InvitationController {
 
     private final InvitationsService invitationsService;
@@ -39,13 +46,13 @@ public class InvitationController {
      * @return seznam vseh povabil v sistemu
      */
     @Operation(
-            summary = "Pridobi vsa povabila",
-            description = "Vrne seznam vseh povabil v celotnem sistemu. Dostop ima le administrator."
+            summary = "Get all invitations",
+            description = "Returns list of all invitations in the entire system. Only accessible by administrator."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Povabila uspešno pridobljena"),
-            @ApiResponse(responseCode = "500", description = "Pri pridobivanju je prišlo do napake"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni administrator aplikacije.")
+            @ApiResponse(responseCode = "200", description = "Invitations successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred during retrieval"),
+            @ApiResponse(responseCode = "401", description = "User is not application administrator.")
     })
     @PreAuthorize("hasRole('ADMINISTRATOR')")
     @GetMapping
@@ -64,17 +71,19 @@ public class InvitationController {
      * @return seznam vseh neodgovorjenih povabil organizacije
      */
     @Operation(
-            summary = "Pridobi vsa neodgovorjena povabila neke organizacije",
-            description = "Vrne seznam vseh neodgovorjenih povabil za neko organizacijo. Dostop ima le administrator organizacije."
+            summary = "Get all unanswered invitations for an organization",
+            description = "Returns list of all unanswered invitations for an organization. Only accessible by organization administrator."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Neodgovorjena povabila uspešno pridobljena"),
-            @ApiResponse(responseCode = "500", description = "Pri pridobivanju je prišlo do napake"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni administrator organizacije.")
+            @ApiResponse(responseCode = "200", description = "Unanswered invitations successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred during retrieval"),
+            @ApiResponse(responseCode = "401", description = "User is not organization administrator.")
     })
     @PreAuthorize("hasRole('ORG_ADMIN')")
     @GetMapping("/{orgId}/pending")
-    public ResponseEntity<?> getInvitations(@PathVariable UUID orgId) {
+    public ResponseEntity<?> getInvitations(
+            @Parameter(required = true)
+            @PathVariable UUID orgId) {
         try{
             UserEntity user = userService.getCurrentUser();
             if (!organizationService.isUserOrgAdmin(orgId, user.getId())) {
@@ -95,13 +104,13 @@ public class InvitationController {
      * @return seznam povabil v organizacije za prijavljenega uporabnika
      */
     @Operation(
-            summary = "Pridobi povabila za trenutnega uporabnika",
-            description = "Vrne seznam povabil, ki so naslovljena na trenutno prijavljenega uporabnika."
+            summary = "Get invitations for current user",
+            description = "Returns list of invitations addressed to currently logged in user."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Povabila uspešno pridobljena"),
-            @ApiResponse(responseCode = "500", description = "Pri pridobivanju je prišlo do napake"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen v aplikaciji")
+            @ApiResponse(responseCode = "200", description = "Invitations successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred during retrieval"),
+            @ApiResponse(responseCode = "401", description = "User is not logged into application")
     })
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/currentUser")
@@ -122,17 +131,18 @@ public class InvitationController {
      * @return objekt sprejetega povabila
      */
     @Operation(
-            summary = "Sprejmi povabilo",
-            description = "Trenutno prijavljen uporabnik sprejme povabilo v organizacijo."
+            summary = "Accept invitation",
+            description = "Currently logged in user accepts invitation to organization."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Povabilo sprejeto"),
-            @ApiResponse(responseCode = "500", description = "Pri sprejemanju povabil je prišlo do napake"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen v aplikaciji")
+            @ApiResponse(responseCode = "200", description = "Invitation accepted"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while accepting invitation"),
+            @ApiResponse(responseCode = "401", description = "User is not logged into application")
     })
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{invitationToken}/accept")
     public ResponseEntity<InvitationEntity> acceptInvitation(
+            @Parameter(required = true)
             @PathVariable String invitationToken) {
         try {
             InvitationEntity invitation = invitationsService.acceptInvitation(invitationToken);
@@ -150,17 +160,18 @@ public class InvitationController {
      * @return respons no content
      */
     @Operation(
-            summary = "Zavrni povabilo",
-            description = "Trenutno prijavljen uporabnik zavrne povabilo v organizacijo."
+            summary = "Decline invitation",
+            description = "Currently logged in user declines invitation to organization."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Povabilo zavrnjeno"),
-            @ApiResponse(responseCode = "500", description = "Pri zavračanju povabila je prišlo do napke"),
-            @ApiResponse(responseCode = "402", description = "Uporabnik ni prijavljen v aplikaciji")
+            @ApiResponse(responseCode = "204", description = "Invitation declined"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while declining invitation"),
+            @ApiResponse(responseCode = "401", description = "User is not logged into application")
     })
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{invitationToken}/decline")
     public ResponseEntity<Void> declineInvitation(
+            @Parameter(required = true)
             @PathVariable String invitationToken) {
         try {
             invitationsService.declineInvitation(invitationToken);
