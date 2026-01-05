@@ -70,7 +70,10 @@ config:
     enabled: "true"
 
   swagger:
-    enabled: "true"
+    enabled: "false"
+
+  context:
+    path: "/user-service"
   
   management:
     endpointsInclude: "health,info,metrics,prometheus"
