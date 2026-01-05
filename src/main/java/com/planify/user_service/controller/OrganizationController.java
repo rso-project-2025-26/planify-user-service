@@ -4,8 +4,13 @@ import com.planify.user_service.model.*;
 import com.planify.user_service.service.OrganizationService;
 import com.planify.user_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +27,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/organizations")
 @RequiredArgsConstructor
+@Tag(name = "Organizations", description = "Organization management and membership endpoints")
+@SecurityRequirement(name = "bearer-jwt")
 public class OrganizationController {
 
     private final OrganizationService organizationService;
@@ -33,15 +40,17 @@ public class OrganizationController {
      * @return objekt ustvarjene organizacije
      */
     @Operation(
-            summary = "Ustvari novo organizacijo",
-            description = "Ustvari novo organizacijo in uporabnika, ki bo administrator te organizacije."
+            summary = "Create new organization",
+            description = "Create new organization and assign user as administrator of this organization."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Organizacija ustvarjena"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri ustvarjanju organizacije")
+            @ApiResponse(responseCode = "201", description = "Organization created"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while creating organization")
     })
     @PostMapping
-    public ResponseEntity<OrganizationEntity> createOrganization(@RequestBody Organization body) {
+    public ResponseEntity<OrganizationEntity> createOrganization(
+            @Parameter(required = true)
+            @RequestBody Organization body) {
         try{
             OrganizationEntity org = organizationService.createOrganization(body);
             return ResponseEntity.status(201).body(org);
@@ -61,18 +70,20 @@ public class OrganizationController {
      * @return objekt ustvarjenega povabila
      */
     @Operation(
-            summary = "Povabi uporabnika v organizacijo",
-            description = "Povabi izbranega uporabnika, da postane del organizacije. To lahko naredi le administrator organizacije."
+            summary = "Invite user to organization",
+            description = "Invite selected user to become part of organization. Only organization administrator can do this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Povabilo poslano"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pošiljanju povabila"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "201", description = "Invitation sent"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while sending invitation"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @PostMapping("/{orgId}/invite")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> inviteUser(
+            @Parameter(required = true)
             @PathVariable UUID orgId,
+            @Parameter(required = true)
             @RequestParam UUID userId,
             @RequestParam(required = false) KeycloakRole role) {
         try {
@@ -95,13 +106,13 @@ public class OrganizationController {
      * @return Identifikator organizacije.
      */
     @Operation(
-            summary = "Pridobi identifikator organizacije trenutno prijavljenega administratorja organizacije.",
-            description = "Vrne identifikator organizacije."
+            summary = "Get organization identifier of currently logged in organization administrator.",
+            description = "Returns organization identifier."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Uspešno pridobljen identifikator organizaije"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju identifikatorja organizacije"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "Organization identifier successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving organization identifier"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @GetMapping("/admin/org")
     @PreAuthorize("hasRole('ORG_ADMIN')")
@@ -125,18 +136,20 @@ public class OrganizationController {
      * @return sporočilo, da je bil uspešno izbrisan
      */
     @Operation(
-            summary = "Odstrani uporabnika iz organizacije",
-            description = "Izbranega uporabnika odstrani iz organizacije. To lahko naredi le administrator organizacije."
+            summary = "Remove user from organization",
+            description = "Remove selected user from organization. Only organization administrator can do this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Uporabnik uspe[no odstranjen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri odstranjevanju uporabnika"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "204", description = "User successfully removed"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while removing user"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @DeleteMapping("/{orgId}/members/{userId}")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> removeUser(
+            @Parameter(required = true)
             @PathVariable UUID orgId,
+            @Parameter(required = true)
             @PathVariable UUID userId) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
@@ -157,17 +170,18 @@ public class OrganizationController {
      * @return sporočilo, da je bil uspešno izbrisan
      */
     @Operation(
-            summary = "Odstrani trenutno prijavljenega uporabnika iz organizacije",
-            description = "Trenutno prijavljenega uporabnika odstrani iz organizacije. To lahko naredi le administrator organizacije."
+            summary = "Remove currently logged in user from organization",
+            description = "Remove currently logged in user from organization. Only organization administrator can do this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Uporabnik uspešno odstranjen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri odstranjevanju uporabnika"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "204", description = "User successfully removed"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while removing user"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @DeleteMapping("/me/memberships/{orgId}")
     @PreAuthorize("hasRole('UPORABNIK')")
     public ResponseEntity<?> removeCurrentUser(
+            @Parameter(required = true)
             @PathVariable UUID orgId) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
@@ -189,18 +203,20 @@ public class OrganizationController {
      * @return vrnemo sporočilo, da je uspešno odobrena zahteva
      */
     @Operation(
-            summary = "Sprejme prošnjo za vstop v organizacijo",
-            description = "Sprejme prošnjo določenega uporabnika in mu doda vlogo GUEST v organizaciji. To lahko naredi le administrator organizacije."
+            summary = "Accept request to join organization",
+            description = "Accept request from specific user and assign them GUEST role in organization. Only organization administrator can do this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Prošnja uspešno sprejeta"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri sprejemanju prošnje"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "Request successfully accepted"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while accepting request"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @PostMapping("/{orgId}/join-request/{requestId}/approve")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> approveJoinRequest(
+            @Parameter(required = true)
             @PathVariable UUID orgId,
+            @Parameter(required = true)
             @PathVariable UUID requestId) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
@@ -223,18 +239,20 @@ public class OrganizationController {
      * @return odgovor, da je zahteva uspešno zavrnejna
      */
     @Operation(
-            summary = "Zavrne prošnjo za vstop v organizacijo",
-            description = "Zavrne prošnjo določenega uporabnika. To lahko naredi le administrator organizacije."
+            summary = "Reject request to join organization",
+            description = "Reject request from specific user. Only organization administrator can do this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Prošnja uspešno zavrnjena"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri zavračanju prošnje"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "Request successfully rejected"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while rejecting request"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @PostMapping("/{orgId}/join-request/{requestId}/reject")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> rejectJoinRequest(
+            @Parameter(required = true)
             @PathVariable UUID orgId,
+            @Parameter(required = true)
             @PathVariable UUID requestId) {
         try {
             // pridobimo uporabnika, ki je poslal zahtevek
@@ -255,17 +273,18 @@ public class OrganizationController {
      * @return seznam neodgovorjenih (PENDING) zahtev
      */
     @Operation(
-            summary = "Pridobi prošnje za organizacijo",
-            description = "Pridobi seznam prošenj, ki so bile poslane za vstop v določeno organizacijo. To lahko vidi le administrator organizacije."
+            summary = "Get requests for organization",
+            description = "Get list of requests sent to join specific organization. Only organization administrator can see this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Prošnja uspešno pridobljene"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju prošnje"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "Requests successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving requests"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @GetMapping("/{orgId}/join-requests")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<List<JoinRequestEntity>> getJoinRequests(
+            @Parameter(required = true)
             @PathVariable UUID orgId) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
@@ -286,19 +305,22 @@ public class OrganizationController {
      * @return obvestilo, da je vloga bila uspešno zamenjana
      */
     @Operation(
-            summary = "Spremeni vlogo uporabnika v organizaciji",
-            description = "Spremeni vlogo določenega uporabnika znotraj organizacije. To lahko naredi le administrator organizacije."
+            summary = "Change user role in organization",
+            description = "Change role of specific user within organization. Only organization administrator can do this."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Vloga uspešno sprejeta"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri spreminjanju vloge"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "Role successfully accepted"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while changing role"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @PutMapping("/{orgId}/members/{userId}/role")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
     public ResponseEntity<?> changeUserRole(
+            @Parameter(required = true)
             @PathVariable UUID orgId,
+            @Parameter(required = true)
             @PathVariable UUID userId,
+            @Parameter(required = true)
             @RequestParam List<KeycloakRole> newRoles) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
@@ -319,17 +341,19 @@ public class OrganizationController {
      * @return seznam uporabnikov
      */
     @Operation(
-            summary = "Pridobimo vse uporabnike organizacije",
-            description = "Vrne seznam vseh članov določene organizacije. Le administrator lahko vidi seznam uporabnikov."
+            summary = "Get all users of organization",
+            description = "Returns list of all members of specific organization. Only administrator can see the list of users."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Uspešno pridobljen seznam"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama uporabnikov"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving user list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @GetMapping("/{orgId}/members")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
-    public ResponseEntity<?> getOrganizationsUsers(@PathVariable UUID orgId) {
+    public ResponseEntity<?> getOrganizationsUsers(
+            @Parameter(required = true)
+            @PathVariable UUID orgId) {
         try{
             // pridobimo uporabnika, ki je poslal zahtevek
             List<UserRoles> users = organizationService.getUsersAndRoles(orgId);
@@ -346,17 +370,19 @@ public class OrganizationController {
      * @return seznam keycloak identifikatorjev uporabnikov
      */
     @Operation(
-            summary = "Pridobimo vse uporabnike organizacije",
-            description = "Vrne seznam keycloak identifikatorjev vseh članov določene organizacije. Le administrator lahko vidi seznam uporabnikov."
+            summary = "Get all users of organization",
+            description = "Returns list of Keycloak identifiers of all members of specific organization. Only administrator can see the list of users."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Uspešno pridobljen seznam"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama uporabnikov"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving user list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @GetMapping("/{orgId}/keycloak/members")
     @PreAuthorize("hasRole('ORG_ADMIN') and @orgSecurity.isAdmin(#orgId, authentication)")
-    public ResponseEntity<?> getOrganizationsKeycloakUsers(@PathVariable UUID orgId) {
+    public ResponseEntity<?> getOrganizationsKeycloakUsers(
+            @Parameter(required = true)
+            @PathVariable UUID orgId) {
         try{
             List<UUID> users = organizationService.getKeycloakUsers(orgId);
             return ResponseEntity.ok(users);
@@ -371,17 +397,19 @@ public class OrganizationController {
      * @return seznam organizacij
      */
     @Operation(
-            summary = "Pridobi orgnizacije prijavljene v sistem",
-            description = "Pridobi seznam vseh organizacij v aplikaciji, katerih slug se začne z iskalno vrednostjo."
+            summary = "Get organizations registered in system",
+            description = "Get list of all organizations in application whose slug starts with search value."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not organization administrator")
     })
     @PreAuthorize("hasRole('UPORABNIK')")
     @GetMapping("/search")
-    public ResponseEntity<List<OrganizationEntity>> searchOrgs(@RequestParam String query) {
+    public ResponseEntity<List<OrganizationEntity>> searchOrgs(
+            @Parameter(required = true)
+            @RequestParam String query) {
         try{
             List<OrganizationEntity> orgs = organizationService.searchOrgs(query);
             return ResponseEntity.ok(orgs);
