@@ -81,7 +81,7 @@ public class UserController {
      * @return seznam uporabnikov
      */
     @Operation(
-            summary = "Pridobi uporabnike sistema",
+            summary = "Pridobi uporabnika glede na iskalno vrednost",
             description = "Pridobi seznam vseh uporabnikv v aplikaciji, katerih username se začne z iskalno vrednostjo. To lahko vidi le administrator organizacije."
     )
     @ApiResponses({
