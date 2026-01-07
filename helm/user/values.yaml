@@ -52,10 +52,10 @@ config:
     showSql: "false"
   
   keycloak:
-    url: "http://keycloak-service:8080"
+    url: "https://4.185.235.181.nip.io/keycloak"
     realm: "planify"
-    issuerUri: "http://keycloak-service:8080/realms/planify"
-    jwkSetUri: "http://keycloak-service:8080/realms/planify/protocol/openid-connect/certs"
+    issuerUri: "https://4.185.235.181.nip.io/keycloak/realms/planify"
+    jwkSetUri: "https://4.185.235.181.nip.io/keycloak/realms/planify/protocol/openid-connect/certs"
   
   kafka:
     bootstrapServers: "kafka-service:9092"
