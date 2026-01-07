@@ -23,13 +23,13 @@ resources:
 
 probes:
   liveness:
-    path: /user-service/actuator/health/liveness
+    path: /actuator/health/liveness
     initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
   readiness:
-    path: /user-service/actuator/health/readiness
+    path: /actuator/health/readiness
     initialDelaySeconds: 30
     periodSeconds: 5
     timeoutSeconds: 3
@@ -71,9 +71,6 @@ config:
 
   swagger:
     enabled: "false"
-
-  context:
-    path: "/user-service"
   
   management:
     endpointsInclude: "health,info,metrics,prometheus"
