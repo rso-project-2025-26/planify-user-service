@@ -14,17 +14,6 @@ WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
 
-# Kopiraj certifikat
-COPY keycloak.crt /tmp/keycloak.crt
-
-# Importaj certifikat v Java truststore
-RUN keytool -import -trustcacerts -alias keycloak-cert \
-    -file /tmp/keycloak.crt \
-    -keystore $JAVA_HOME/lib/security/cacerts \
-    -storepass changeit \
-    -noprompt && \
-    rm /tmp/keycloak.crt
-
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8082/actuator/health || exit 1
 
