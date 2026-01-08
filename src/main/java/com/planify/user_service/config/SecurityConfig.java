@@ -29,16 +29,24 @@ public class SecurityConfig {
                 .requestMatchers("/internal/**").permitAll() // interni API (zaenkrat)
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/resilience/**").permitAll() // Fault tolerance monitoring
-                    .requestMatchers(
-                            "/v3/api-docs/**",
-                            "/v3/api-docs",
-                            "/swagger-ui/**",
-                            "/swagger-ui.html",
-                            "/api-docs/**",
-                            "/api-docs",
-                            "/swagger-resources/**",
-                            "/webjars/**"
-                    ).permitAll()
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/v3/api-docs",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/api-docs/**",
+                        "/api-docs",
+                        "/swagger-resources/**",
+                        "/webjars/**",
+                        "/user-service/v3/api-docs/**",
+                        "/user-service/v3/api-docs",
+                        "/user-service/swagger-ui/**",
+                        "/user-service/swagger-ui.html",
+                        "/user-service/api-docs/**",
+                        "/user-service/api-docs",
+                        "/user-service/swagger-resources/**",
+                        "/user-service/webjars/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
