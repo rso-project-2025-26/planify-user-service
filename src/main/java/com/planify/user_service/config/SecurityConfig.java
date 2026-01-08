@@ -31,21 +31,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/resilience/**").permitAll() // Fault tolerance monitoring
                 .requestMatchers(
                         "/v3/api-docs/**",
-                        "/v3/api-docs",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
-                        "/api-docs/**",
-                        "/api-docs",
-                        "/swagger-resources/**",
-                        "/webjars/**",
                         "/user-service/v3/api-docs/**",
-                        "/user-service/v3/api-docs",
-                        "/user-service/swagger-ui/**",
-                        "/user-service/swagger-ui.html",
-                        "/user-service/api-docs/**",
-                        "/user-service/api-docs",
-                        "/user-service/swagger-resources/**",
-                        "/user-service/webjars/**"
+                        "/user-service/swagger-ui/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
