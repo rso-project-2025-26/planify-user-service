@@ -70,10 +70,10 @@ management:
 
 springdoc:
     api-docs:
-        path: /user-service/v3/api-docs
+        path: /v3/api-docs
         enabled: ${SWAGGER_ENABLED:true}
     swagger-ui:
-        path: /user-service/swagger-ui/index.html
+        path: /swagger-ui.html
         enabled: ${SWAGGER_ENABLED:true}
         operations-sorter: method
         tags-sorter: alpha
