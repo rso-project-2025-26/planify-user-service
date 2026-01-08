@@ -24,8 +24,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/api/auth/**").permitAll() // registracija, login
-                    .requestMatchers("/api/users/**").permitAll() // uporabniki
-                    .requestMatchers("/api/organizations/**").permitAll() // organizacije
+                .requestMatchers("/api/users/**").permitAll() // uporabniki
+                .requestMatchers("/api/organizations/**").permitAll() // organizacije
                 .requestMatchers("/internal/**").permitAll() // interni API (zaenkrat)
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/resilience/**").permitAll() // Fault tolerance monitoring
@@ -43,10 +43,6 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                    .authenticationEntryPoint((request, response, authException) -> {
-                        // allow anonymous access
-                        response.setStatus(HttpServletResponse.SC_OK);
-                    })
             );
         
         return http.build();
