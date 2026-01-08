@@ -73,7 +73,7 @@ springdoc:
         path: /v3/api-docs
         enabled: ${SWAGGER_ENABLED:true}
     swagger-ui:
-        path: /swagger-ui.html
+        path: /user-service/swagger-ui.html
         enabled: ${SWAGGER_ENABLED:true}
         operations-sorter: method
         tags-sorter: alpha
