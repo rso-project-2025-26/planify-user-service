@@ -30,14 +30,14 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/resilience/**").permitAll() // Fault tolerance monitoring
                     .requestMatchers(
-                            "/api-docs",
                             "/v3/api-docs/**",
+                            "/v3/api-docs",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/user-service/api-docs",
-                            "/user-service/v3/api-docs/**",
-                            "/user-service/swagger-ui/**",
-                            "/user-service/swagger-ui.html"
+                            "/api-docs/**",
+                            "/api-docs",
+                            "/swagger-resources/**",
+                            "/webjars/**"
                     ).permitAll()
                 .anyRequest().authenticated()
             )
