@@ -303,7 +303,7 @@ class UserServiceTest {
 
         // Act
         UserEntity result = userService.createLocalUserProfile(
-                testUserKecloakId, "new@example.com", "newuser", "New", "User", true, true);
+                testUserKecloakId, "new@example.com", "+386 30 000 000", "newuser", "New", "User", true, true);
 
         // Assert
         assertNotNull(result);

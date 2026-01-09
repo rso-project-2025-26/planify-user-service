@@ -5,8 +5,13 @@ import com.planify.user_service.model.OrganizationEntity;
 import com.planify.user_service.model.UserEntity;
 import com.planify.user_service.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +29,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Tag(name = "Users", description = "User management and profile endpoints")
+@SecurityRequirement(name = "bearer-jwt")
 public class UserController {
 
     private final UserService userService;
@@ -33,13 +40,13 @@ public class UserController {
      * @return seznam uporabnikov
      */
     @Operation(
-            summary = "Pridobi uporabnike sistema",
-            description = "Pridobi seznam vseh uporabnikv v aplikaciji. To lahko vidi le administrator aplikacije."
+            summary = "Get system users",
+            description = "Get list of all users in the application. Only visible to application administrators."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator aplikacije")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving the list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not an application administrator")
     })
     @PreAuthorize("hasRole('ADMINISTRATOR')")
     @GetMapping
@@ -54,21 +61,48 @@ public class UserController {
     }
 
     /**
+     * Pridobimo uporabnika glede na keycloak id
+     * @return Uporabnik
+     */
+    @Operation(
+            summary = "Get user by ID",
+            description = "Get user data in the application by their ID."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving user"),
+    })
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserEntity> getUser(
+            @Parameter(required = true)
+            @PathVariable UUID userId) {
+        try{
+            UserEntity user = userService.getUser(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
      * Pridobimo vse uporabnike v naši bazi glede na iskalno vrednost
      * @return seznam uporabnikov
      */
     @Operation(
-            summary = "Pridobi uporabnike sistema",
-            description = "Pridobi seznam vseh uporabnikv v aplikaciji, katerih username se začne z iskalno vrednostjo. To lahko vidi le administrator organizacije."
+            summary = "Get user by search value",
+            description = "Get list of all users in the application whose username starts with the search value. Only visible to organization administrators."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni administrator organizacije")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving the list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not an organization administrator")
     })
     @PreAuthorize("hasRole('ORG_ADMIN')")
     @GetMapping("/search")
-    public ResponseEntity<List<UserEntity>> searchUsers(@RequestParam String username) {
+    public ResponseEntity<List<UserEntity>> searchUsers(
+            @Parameter(required = true)
+            @RequestParam String username) {
         try{
             List<UserEntity> users = userService.searchUsers(username);
             return ResponseEntity.ok(users);
@@ -84,13 +118,13 @@ public class UserController {
      * @return seznam organizacij trenutnega uporabnika
      */
     @Operation(
-            summary = "Pridobi organizacije, katerih član je uporabnik",
-            description = "Pridobi seznam vseh organizacij v katerih je trenutno prijavljen uporabnik član."
+            summary = "Get organizations where user is a member",
+            description = "Get list of all organizations where the currently logged in user is a member."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni prijavljen v sistem")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving the list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not authenticated")
     })
     @PreAuthorize("hasRole('UPORABNIK')")
     @GetMapping("me/orgs")
@@ -109,13 +143,13 @@ public class UserController {
      * @return seznam poslanih prošenj, ki še čakajo na odgovor
      */
     @Operation(
-            summary = "Pridobi neobdelane poslane prošnje trenutno prijavljenega uporabnika",
-            description = "Pridobi seznam oslanih prošenj, ki še čakajo na odgovor."
+            summary = "Get unprocessed sent requests of currently logged in user",
+            description = "Get list of sent requests still awaiting response."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Seznam je uspešno pridobljen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju seznama"),
-            @ApiResponse(responseCode = "403", description = "Prijavljeni uporabnik ni prijavljen v sistem")
+            @ApiResponse(responseCode = "200", description = "List successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving the list"),
+            @ApiResponse(responseCode = "401", description = "Logged in user is not authenticated")
     })
     @PreAuthorize("hasRole('UPORABNIK')")
     @GetMapping("me/join-requests")
@@ -134,13 +168,13 @@ public class UserController {
      * @return objekt uporabnika
      */
     @Operation(
-            summary = "Pridobi trenutnega uporabnika",
-            description = "Pridobi objekt trenutno prijavljenega uporabnika."
+            summary = "Get current user",
+            description = "Get object of currently logged in user."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Uporabnik je uspešno pridobljen"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pridobivanju uporabnika"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen")
+            @ApiResponse(responseCode = "200", description = "User successfully retrieved"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while retrieving user"),
+            @ApiResponse(responseCode = "401", description = "User is not logged in")
     })
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
@@ -159,13 +193,13 @@ public class UserController {
      * @return
      */
     @Operation(
-            summary = "Izbriše trenutnega uporabnika",
-            description = "Izbriše  trenutno prijavljenega uporabnika."
+            summary = "Delete current user",
+            description = "Delete currently logged in user."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Uporabnik je uspešno izbrisan"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri brisanju uporabnika"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen")
+            @ApiResponse(responseCode = "204", description = "User successfully deleted"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while deleting user"),
+            @ApiResponse(responseCode = "401", description = "User is not logged in")
     })
     @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/me")
@@ -187,13 +221,13 @@ public class UserController {
      * @return preslikavo lastnost vrednost (vseh podatkov o uporabniku)
      */
     @Operation(
-            summary = "Pridobi trenutnega uporabnika",
-            description = "Izvozi podatke trenutno prijavljenega uporabnika."
+            summary = "Get current user",
+            description = "Export data of currently logged in user."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Podatki so uspešno izvezeni"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri izvozu"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen")
+            @ApiResponse(responseCode = "200", description = "Data successfully exported"),
+            @ApiResponse(responseCode = "500", description = "Error occurred during export"),
+            @ApiResponse(responseCode = "401", description = "User is not logged in")
     })
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me/export")
@@ -215,17 +249,18 @@ public class UserController {
      * @return vrne kreiran objekt zahteve za pristop
      */
     @Operation(
-            summary = "Pošlje prošnjo za vstop v oprganizacijo",
-            description = "Uporabnik pošlje prošnjo za vstop v določeno organizacijo."
+            summary = "Send request to join organization",
+            description = "User sends request to join a specific organization."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Pročnja je uspešno poslana"),
-            @ApiResponse(responseCode = "500", description = "Prišlo je do napake pri pošiljanju prošnje"),
-            @ApiResponse(responseCode = "403", description = "Uporabnik ni prijavljen")
+            @ApiResponse(responseCode = "201", description = "Request successfully sent"),
+            @ApiResponse(responseCode = "500", description = "Error occurred while sending request"),
+            @ApiResponse(responseCode = "401", description = "User is not logged in")
     })
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{orgId}/join-request")
     public ResponseEntity<JoinRequestEntity> sendJoinRequest(
+            @Parameter(required = true)
             @PathVariable UUID orgId) {
         try{
             UserEntity user = userService.getCurrentUser();

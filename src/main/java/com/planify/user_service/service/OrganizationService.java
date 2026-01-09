@@ -130,6 +130,15 @@ public class OrganizationService {
         return new ArrayList<>(byUserId.values());
     }
 
+    public List<UUID> getKeycloakUsers(UUID orgId) {
+        List<OrganizationMembershipEntity> memberships =
+                organizationMembershipRepository.findByOrganizationId(orgId);
+        List<UUID> userIds = memberships.stream().map(OrganizationMembershipEntity::getUser).map(UserEntity::getKeycloakId).toList();
+        // filtriramo duplikate
+        userIds = new ArrayList<>(new HashSet<>(userIds));
+        return userIds;
+    }
+
     public List<OrganizationEntity> searchOrgs(String serachValue) {
         return organizationRepository.findOrgsBySearchValue(serachValue);
     }

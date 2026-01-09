@@ -117,7 +117,12 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Organization not found"));
     }
 
-    UserEntity getUser(UUID userId) {
+    public UserEntity getUserByKeycoakId(UUID userId) {
+        return userRepository.findActiveByKeycloakId(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public UserEntity getUser(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
@@ -176,10 +181,11 @@ public class UserService {
         return saved;
     }
 
-    public UserEntity createLocalUserProfile(UUID keycloakId, String email, String username, String fisrtName, String lastName, Boolean emailConsent, Boolean smsConsent) {
+    public UserEntity createLocalUserProfile(UUID keycloakId, String email, String phone, String username, String fisrtName, String lastName, Boolean emailConsent, Boolean smsConsent) {
         UserEntity user = new UserEntity();
         user.setKeycloakId(keycloakId);
         user.setEmail(email);
+        user.setPhoneNumber(phone);
         user.setUsername(username);
         user.setFirstName(fisrtName);
         user.setLastName(lastName);

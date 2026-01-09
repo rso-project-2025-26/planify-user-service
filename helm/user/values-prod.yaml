@@ -1,0 +1,13 @@
+config:
+  springProfilesActive: prod
+  jpa:
+    showSql: "false"
+  swagger:
+    enabled: "true"
+  management:
+    endpointsInclude: "health,info,metrics,prometheus"
+  logging:
+    levelApp: "INFO"
+    levelSpringWeb: "WARN"
+  keycloak:
+    issuerUri: "https://131.189.78.13.nip.io/keycloak/realms/planify"
