@@ -1,4 +1,4 @@
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: ghcr.io/rso-project-2025-26/planify-user-service
@@ -15,22 +15,22 @@ service:
 
 resources:
   requests:
-    memory: "512Mi"
-    cpu: "250m"
+    cpu: "100m"
+    memory: "256Mi"
   limits:
-    memory: "1Gi"
-    cpu: "500m"
+    cpu: "250m"
+    memory: "512Mi"
 
 probes:
   liveness:
     path: /actuator/health/liveness
-    initialDelaySeconds: 60
+    initialDelaySeconds: 120
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
   readiness:
     path: /actuator/health/readiness
-    initialDelaySeconds: 30
+    initialDelaySeconds: 90
     periodSeconds: 5
     timeoutSeconds: 3
     failureThreshold: 3
@@ -92,11 +92,3 @@ secrets:
   keycloak:
     adminUsername: "admin"
     adminPassword: "admin"
-
-ingress:
-  enabled: true
-  host: ""
-  enableTls: false
-  enableAuth: false
-  htpasswd: "azure-function:$apr1$iDPWK2Ef$dNP9ntfOxR4KSZM.LDrsb."
-  whitelist: "51.103.132.207,51.103.132.61,51.103.131.51,51.103.132.65,51.107.58.161"
