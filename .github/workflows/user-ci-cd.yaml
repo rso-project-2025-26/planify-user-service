@@ -119,7 +119,6 @@ jobs:
             NAMESPACE="planify-dev"
             VALUES_FILE="values-dev.yaml"
           fi
-          VALUES_FILE="values.yaml"
 
           IMAGE_TAG="${{ github.ref_name }}-$(echo ${{ github.sha }} | cut -c1-7)"
 
